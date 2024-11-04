@@ -1,0 +1,45 @@
+name: Update
+
+on:
+  schedule:
+    # every Saturday at 13:00 UTC
+    - cron: "0 13 * * 6"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    name: Update dependencies
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Zig
+        uses: mlugg/setup-zig@v1
+      - name: Create app token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{vars.BACKPORT_APP}}
+          private-key: ${{secrets.BACKPORT_KEY}}
+      - name: Update tree-sitter
+        run: |-
+          tag="$(gh release view --json tagName -q .tagName)"
+          url="https://github.com/$GH_REPO/archive/refs/tags/$tag.tar.gz"
+          zig fetch --save=tree-sitter "$url"
+        env:
+          GH_REPO: tree-sitter/tree-sitter
+          GH_TOKEN: ${{github.token}}
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: build.zig.zon
+          labels: dependencies
+          commit-message: "build: update dependencies"
+          title: "build: update dependencies"
+          branch: update-zig-dependencies
+          base: ${{github.head_ref}}
+          token: ${{steps.app-token.outputs.token}}
+          sign-commits: true
