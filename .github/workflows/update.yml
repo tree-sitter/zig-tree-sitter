@@ -4,6 +4,7 @@ on:
   schedule:
     # every Saturday at 13:00 UTC
     - cron: "0 13 * * 6"
+  workflow_dispatch:
 
 permissions:
   contents: write
