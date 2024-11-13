@@ -22,7 +22,8 @@ pub const Language = opaque {
     ///
     /// This returns an error if it failed to load the library or find the symbol.
     pub fn dynLoad(library_path: []const u8, symbol_name: [:0]const u8) error{LibError, SymError}!*const Language {
-        const library = std.DynLib.open(library_path) catch return error.LibError;
+        var library = std.DynLib.open(library_path) catch return error.LibError;
+        defer library.close();
         const function = library.lookup(LanguageFn, symbol_name) orelse return error.SymError;
         return function();
     }
