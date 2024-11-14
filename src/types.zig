@@ -55,7 +55,7 @@ pub const Point = extern struct {
     /// self > other => 1
     /// self < other => -1
     /// ```
-    pub fn cmp(self: *Point, other: *Point) comptime_int {
+    pub fn cmp(self: *const Point, other: Point) i8 {
         const row_diff = self.row - other.row;
         if (row_diff > 0) return 1;
         if (row_diff < 0) return -1;
