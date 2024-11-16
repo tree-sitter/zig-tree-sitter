@@ -4,10 +4,12 @@ on:
   push:
     branches: [master]
     paths:
+      - build.zig
       - src/*
       - .github/workflows/*
   pull_request:
     paths:
+      - build.zig
       - src/*
       - .github/workflows/*
 
