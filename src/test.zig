@@ -82,7 +82,7 @@ test "Tree" {
     defer tree.destroy();
     try testing.expectEqual(language, tree.language());
     try testing.expectEqual(13, tree.rootNode().endByte());
-    try testing.expectEqual(3, tree.rootNodeWithOffset(3, .{ .row = 0, .column = 3 }).?.startByte());
+    try testing.expectEqual(3, tree.rootNodeWithOffset(3, .{ .row = 0, .column = 3 }).startByte());
 
     var ranges = tree.getIncludedRanges();
     var range: ts.Range = .{

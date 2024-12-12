@@ -28,9 +28,8 @@ pub const Tree = opaque {
 
     /// Get the root node of the syntax tree, with
     /// its position shifted forward by the given offset.
-    pub inline fn rootNodeWithOffset(self: *const Tree, offset_bytes: u32, offset_extent: Point) ?Node {
-        const node = ts_tree_root_node_with_offset(self, offset_bytes, offset_extent);
-        return if (!ts_node_is_null(node)) node else null;
+    pub inline fn rootNodeWithOffset(self: *const Tree, offset_bytes: u32, offset_extent: Point) Node {
+        return ts_tree_root_node_with_offset(self, offset_bytes, offset_extent);
     }
 
     /// Get the language that was used to parse the syntax tree.
