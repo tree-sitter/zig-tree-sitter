@@ -203,10 +203,11 @@ test "Node" {
     try testing.expectEqual(0, node.startPoint().column);
     try testing.expectEqual(13, node.endPoint().column);
 
-    try testing.expectEqual(node.startByte(), node.range().start_byte);
-    try testing.expectEqual(node.endByte(), node.range().end_byte);
-    try testing.expectEqual(node.startPoint(), node.range().start_point);
-    try testing.expectEqual(node.endPoint(), node.range().end_point);
+    const range = node.range();
+    try testing.expectEqual(0, range.start_byte);
+    try testing.expectEqual(13, range.end_byte);
+    try testing.expectEqual(ts.Point{.row = 0, .column = 0}, range.start_point);
+    try testing.expectEqual(ts.Point{.row = 0, .column = 13}, range.end_point);
 
     try testing.expectEqual(1, node.childCount());
     try testing.expectEqual(1, node.namedChildCount());
