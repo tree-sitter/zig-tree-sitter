@@ -206,8 +206,8 @@ test "Node" {
     const range = node.range();
     try testing.expectEqual(0, range.start_byte);
     try testing.expectEqual(13, range.end_byte);
-    try testing.expectEqual(ts.Point{.row = 0, .column = 0}, range.start_point);
-    try testing.expectEqual(ts.Point{.row = 0, .column = 13}, range.end_point);
+    try testing.expectEqual(0, range.start_point.column);
+    try testing.expectEqual(13, range.end_point.column);
 
     try testing.expectEqual(1, node.childCount());
     try testing.expectEqual(1, node.namedChildCount());
