@@ -128,7 +128,7 @@ pub const Node = extern struct {
             .start_byte = self.startByte(),
             .end_byte = self.endByte(),
             .start_point = self.startPoint(),
-            .end_point = self.startPoint()
+            .end_point = self.endPoint()
         };
     }
 
