@@ -203,6 +203,12 @@ test "Node" {
     try testing.expectEqual(0, node.startPoint().column);
     try testing.expectEqual(13, node.endPoint().column);
 
+    const range = node.range();
+    try testing.expectEqual(0, range.start_byte);
+    try testing.expectEqual(13, range.end_byte);
+    try testing.expectEqual(0, range.start_point.column);
+    try testing.expectEqual(13, range.end_point.column);
+
     try testing.expectEqual(1, node.childCount());
     try testing.expectEqual(1, node.namedChildCount());
     try testing.expectEqual(11, node.descendantCount());
