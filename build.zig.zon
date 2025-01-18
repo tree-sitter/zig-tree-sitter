@@ -1,7 +1,7 @@
 .{
     .name = "tree_sitter",
 
-    .version = "0.24.1",
+    .version = "0.24.2",
 
     .dependencies = .{
         .@"tree-sitter" = .{
@@ -9,8 +9,8 @@
             .hash = "12206e3a9d5a2b89d2dc96a943cb6d1994ea23b4a5fb173f571f4c6adb8f7a5b115e",
         },
         .@"tree-sitter-c" = .{
-            .url = "https://github.com/tree-sitter/tree-sitter-c/archive/refs/tags/v0.23.2.tar.gz",
-            .hash = "1220bb83b2b5c5de05b9a1146f988238f0cb78800e3141fd7bc5fea3c12a54fd6bed",
+            .url = "https://github.com/tree-sitter/tree-sitter-c/archive/refs/tags/v0.23.4.tar.gz",
+            .hash = "1220d4c5bfcdbf2fe3b074650f5f827731a1e1d6dfd8a0adbfbbf405e08c5adcab4a",
             .lazy = true,
         },
     },
