@@ -5,8 +5,8 @@
 
     .dependencies = .{
         .@"tree-sitter" = .{
-            .url = "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.24.6.tar.gz",
-            .hash = "1220f44691132e06e4575ab7fed7737c05da86e3f8130ffa59751ce6eaba1b1d73ef",
+            .url = "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.24.7.tar.gz",
+            .hash = "12206e3a9d5a2b89d2dc96a943cb6d1994ea23b4a5fb173f571f4c6adb8f7a5b115e",
         },
         .@"tree-sitter-c" = .{
             .url = "https://github.com/tree-sitter/tree-sitter-c/archive/refs/tags/v0.23.2.tar.gz",
