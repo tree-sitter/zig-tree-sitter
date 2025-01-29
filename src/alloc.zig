@@ -16,5 +16,5 @@ pub extern fn ts_set_allocator(
     new_malloc: ?*const fn (size: usize) callconv(.C) ?*anyopaque,
     new_calloc: ?*const fn (nmemb: usize, size: usize) callconv(.C) ?*anyopaque,
     new_realloc: ?*const fn (ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque,
-    new_free: ?*const fn (ptr: ?*anyopaque) callconv(.C) void
+    new_free: ?*const fn (ptr: ?*anyopaque) callconv(.C) void,
 ) void;

@@ -30,16 +30,16 @@ pub const Query = opaque {
     /// ```
     pub fn create(language: *const Language, source: []const u8, error_offset: *u32) Error!*Query {
         var error_type: QueryError = .None;
-        return ts_query_new(language, source.ptr, @intCast(source.len), error_offset, &error_type)
-            orelse switch (error_type) {
-                .Syntax => error.InvalidSyntax,
-                .NodeType => error.InvalidNodeType,
-                .Field => error.InvalidField,
-                .Capture => error.InvalidCapture,
-                .Structure => error.InvalidStructure,
-                .Language => error.InvalidLanguage,
-                else => unreachable,
-            };
+        const query = ts_query_new(language, source.ptr, @intCast(source.len), error_offset, &error_type);
+        return query orelse switch (error_type) {
+            .Syntax => error.InvalidSyntax,
+            .NodeType => error.InvalidNodeType,
+            .Field => error.InvalidField,
+            .Capture => error.InvalidCapture,
+            .Structure => error.InvalidStructure,
+            .Language => error.InvalidLanguage,
+            else => unreachable,
+        };
     }
 
     /// Delete the query, freeing all of the memory that it used.
@@ -146,7 +146,7 @@ pub const Query = opaque {
     }
 
     /// The kind of error that occurred while creating a `Query`.
-    pub const Error = error {
+    pub const Error = error{
         InvalidSyntax,
         InvalidNodeType,
         InvalidField,
@@ -194,8 +194,13 @@ pub const Query = opaque {
     };
 };
 
-extern fn ts_query_new(language: ?*const Language, source: [*c]const u8, source_len: u32,
-                       error_offset: *u32, error_type: *QueryError) ?*Query;
+extern fn ts_query_new(
+    language: ?*const Language,
+    source: [*c]const u8,
+    source_len: u32,
+    error_offset: *u32,
+    error_type: *QueryError,
+) ?*Query;
 extern fn ts_query_delete(self: *Query) void;
 extern fn ts_query_pattern_count(self: *const Query) u32;
 extern fn ts_query_capture_count(self: *const Query) u32;
@@ -206,10 +211,16 @@ extern fn ts_query_is_pattern_rooted(self: *const Query, pattern_index: u32) boo
 extern fn ts_query_is_pattern_non_local(self: *const Query, pattern_index: u32) bool;
 extern fn ts_query_is_pattern_guaranteed_at_step(self: *const Query, byte_offset: u32) bool;
 extern fn ts_query_capture_name_for_id(self: *const Query, index: u32, length: *u32) [*c]const u8;
-extern fn ts_query_capture_quantifier_for_id(self: *const Query, pattern_index: u32,
-                                             capture_index: u32) Query.Quantifier;
+extern fn ts_query_capture_quantifier_for_id(
+    self: *const Query,
+    pattern_index: u32,
+    capture_index: u32,
+) Query.Quantifier;
 extern fn ts_query_string_value_for_id(self: *const Query, index: u32, length: *u32) [*c]const u8;
 extern fn ts_query_disable_capture(self: *Query, name: [*c]const u8, length: u32) void;
 extern fn ts_query_disable_pattern(self: *Query, pattern_index: u32) void;
-extern fn ts_query_predicates_for_pattern(self: *const Query, pattern_index: u32,
-                                          step_count: *u32) [*c]const Query.PredicateStep;
+extern fn ts_query_predicates_for_pattern(
+    self: *const Query,
+    pattern_index: u32,
+    step_count: *u32,
+) [*c]const Query.PredicateStep;

@@ -4,7 +4,7 @@
 ///
 /// The Tree-sitter library is generally backwards-compatible with
 /// languages generated using older CLI versions, but is not forwards-compatible.
-pub const LANGUAGE_VERSION = 14;
+pub const LANGUAGE_VERSION = 15;
 
 /// The earliest ABI version that is supported by the current version of the library.
 pub const MIN_COMPATIBLE_LANGUAGE_VERSION = 13;

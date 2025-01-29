@@ -12,7 +12,7 @@ const QueryMatch = extern struct {
         return .{
             .id = self.id,
             .pattern_index = self.pattern_index,
-            .captures = self.captures[0..self.capture_count]
+            .captures = self.captures[0..self.capture_count],
         };
     }
 };
@@ -46,8 +46,11 @@ pub const QueryCursor = opaque {
     }
 
     /// Start a given query on a certain node.
-    pub inline fn exec(self: *QueryCursor, query: *const Query, node: Node) void {
-        ts_query_cursor_exec(self, query, node);
+    pub inline fn exec(self: *QueryCursor, query: *const Query, node: Node, options: ?*const Options) void {
+        if (options) |o|
+            ts_query_cursor_exec_with_options(self, query, node, o)
+        else
+            ts_query_cursor_exec(self, query, node);
     }
 
     /// Check if this cursor exceeded its maximum capacity for storing in-progress matches.
@@ -72,24 +75,42 @@ pub const QueryCursor = opaque {
 
     /// Get the maximum duration in microseconds that query
     /// execution should be allowed to take before halting.
+    ///
+    /// **Deprecated:** Use `exec()` with options instead.
     pub inline fn getTimeoutMicros(self: *const QueryCursor) u64 {
         return ts_query_cursor_timeout_micros(self);
     }
 
     /// Set the maximum duration in microseconds that query
     /// execution should be allowed to take before halting.
+    ///
+    /// **Deprecated:** Use `exec()` with options instead.
     pub inline fn setTimeoutMicros(self: *QueryCursor, timeout_micros: u64) void {
         ts_query_cursor_set_timeout_micros(self, timeout_micros);
     }
 
     /// Set the range of bytes in which the query will be executed.
-    pub inline fn setByteRange(self: *QueryCursor, start_byte: u32, end_byte: u32) void {
-        ts_query_cursor_set_byte_range(self, start_byte, end_byte);
+    ///
+    /// The query cursor will return matches that intersect with the
+    /// given byte range. This means that a match may be returned
+    /// even if some of its captures fall outside the specified range,
+    /// as long as at least part of the match overlaps with the range.
+    pub inline fn setByteRange(self: *QueryCursor, start_byte: u32, end_byte: u32) error{InvalidRange}!void {
+        if (!ts_query_cursor_set_byte_range(self, start_byte, end_byte)) {
+            return error.InvalidRange;
+        }
     }
 
     /// Set the range of points in which the query will be executed.
-    pub inline fn setPointRange(self: *QueryCursor, start_point: Point, end_point: Point) void {
-        ts_query_cursor_set_point_range(self, start_point, end_point);
+    ///
+    /// The query cursor will return matches that intersect with the
+    /// given point range. This means that a match may be returned
+    /// even if some of its captures fall outside the specified range,
+    /// as long as at least part of the match overlaps with the range.
+    pub inline fn setPointRange(self: *QueryCursor, start_point: Point, end_point: Point) error{InvalidRange}!void {
+        if (!ts_query_cursor_set_point_range(self, start_point, end_point)) {
+            return error.InvalidRange;
+        }
     }
 
     /// Set the maximum start depth for a query cursor.
@@ -129,18 +150,37 @@ pub const QueryCursor = opaque {
     pub inline fn removeMatch(self: *QueryCursor, match_id: u32) void {
         ts_query_cursor_remove_match(self, match_id);
     }
+
+    /// An object that represents the current state of the query cursor.
+    pub const State = extern struct {
+        payload: ?*anyopaque = null,
+        current_byte_offset: u32,
+    };
+
+    /// An object which contains the query execution options.
+    pub const Options = extern struct {
+        payload: ?*anyopaque = null,
+        /// A callback that receives the query state during execution.
+        progress_callback: *const fn (state: State) callconv(.C) bool,
+    };
 };
 
 pub extern fn ts_query_cursor_new() *QueryCursor;
 pub extern fn ts_query_cursor_delete(self: *QueryCursor) void;
 pub extern fn ts_query_cursor_exec(self: *QueryCursor, query: *const Query, node: Node) void;
+pub extern fn ts_query_cursor_exec_with_options(
+    self: *QueryCursor,
+    query: *const Query,
+    node: Node,
+    options: *const QueryCursor.Options,
+) void;
 pub extern fn ts_query_cursor_did_exceed_match_limit(self: *const QueryCursor) bool;
 pub extern fn ts_query_cursor_match_limit(self: *const QueryCursor) u32;
 pub extern fn ts_query_cursor_set_match_limit(self: *QueryCursor, limit: u32) void;
 pub extern fn ts_query_cursor_set_timeout_micros(self: *QueryCursor, timeout_micros: u64) void;
 pub extern fn ts_query_cursor_timeout_micros(self: *const QueryCursor) u64;
-pub extern fn ts_query_cursor_set_byte_range(self: *QueryCursor, start_byte: u32, end_byte: u32) void;
-pub extern fn ts_query_cursor_set_point_range(self: *QueryCursor, start_point: Point, end_point: Point) void;
+pub extern fn ts_query_cursor_set_byte_range(self: *QueryCursor, start_byte: u32, end_byte: u32) bool;
+pub extern fn ts_query_cursor_set_point_range(self: *QueryCursor, start_point: Point, end_point: Point) bool;
 pub extern fn ts_query_cursor_set_max_start_depth(self: *QueryCursor, max_start_depth: u32) void;
 pub extern fn ts_query_cursor_next_match(self: *QueryCursor, match: *QueryMatch) bool;
 pub extern fn ts_query_cursor_next_capture(self: *QueryCursor, match: *QueryMatch, capture_index: *u32) bool;

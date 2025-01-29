@@ -13,10 +13,18 @@ pub const Input = extern struct {
         payload: ?*anyopaque,
         byte_index: u32,
         position: Point,
-        bytes_read: *u32
+        bytes_read: *u32,
     ) callconv(.C) [*c]const u8,
     /// An indication of how the text is encoded.
     encoding: InputEncoding = InputEncoding.UTF_8,
+    // This function reads one code point from the given string, returning
+    /// the number of bytes consumed. It should write the code point to
+    /// the `code_point` pointer, or write `-1` if the input is invalid.
+    decode: ?*const fn (
+        string: [*c]const u8,
+        length: u32,
+        code_point: *i32,
+    ) callconv(.C) u32 = null,
 };
 
 /// An edit to a text document.
@@ -37,7 +45,7 @@ pub const Logger = extern struct {
     log: ?*const fn (
         payload: ?*anyopaque,
         log_type: LogType,
-        buffer: [*:0]const u8
+        buffer: [*:0]const u8,
     ) callconv(.C) void = null,
 };
 
@@ -78,7 +86,9 @@ pub const Range = extern struct {
 /// The encoding of source code.
 pub const InputEncoding = enum(c_uint) {
     UTF_8,
-    UTF_16,
+    UTF_16LE,
+    UTF_16BE,
+    Custom,
 };
 
 /// The type of a log message.
