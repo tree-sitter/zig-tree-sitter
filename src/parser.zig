@@ -63,17 +63,23 @@ pub const Parser = opaque {
 
     /// Get the maximum duration in microseconds that parsing
     /// should be allowed to take before halting.
+    ///
+    /// **Deprecated.** Use `parseInput()` with options instead.
     pub inline fn getTimeoutMicros(self: *const Parser) u64 {
         return ts_parser_timeout_micros(self);
     }
 
     /// Set the maximum duration in microseconds that parsing
     /// should be allowed to take before halting.
+    ///
+    /// **Deprecated.** Use `parseInput()` with options instead.
     pub inline fn setTimeoutMicros(self: *Parser, timeout: u64) void {
         return ts_parser_set_timeout_micros(self, timeout);
     }
 
     /// Get the parser's current cancellation flag pointer.
+    ///
+    /// **Deprecated.** Use `parseInput()` with options instead.
     pub inline fn getCancellationFlag(self: *const Parser) ?*const usize {
         return ts_parser_cancellation_flag(self);
     }
@@ -83,13 +89,15 @@ pub const Parser = opaque {
     /// If a non-null pointer is assigned, then the parser will
     /// periodically read from this pointer during parsing.
     /// If it reads a non-zero value, it will halt early.
+    ///
+    /// **Deprecated.** Use `parseInput()` with options instead.
     pub inline fn setCancellationFlag(self: *const Parser, flag: ?*const usize) void {
         return ts_parser_set_cancellation_flag(self, flag);
     }
 
     /// Get the ranges of text that the parser will include when parsing.
     pub fn getIncludedRanges(self: *const Parser) []const Range {
-        var count: u32 = undefined;
+        var count: u32 = 0;
         const ranges = ts_parser_included_ranges(self, &count);
         return ranges[0..count];
     }
@@ -124,27 +132,47 @@ pub const Parser = opaque {
     /// have already edited the old syntax tree using the `Tree.edit()`
     /// method in a way that exactly matches the source code changes.
     ///
-    /// This method returns a syntax tree on success or an appropriate
-    /// error if the parser does not have a language assigned, or parsing
-    /// was cancelled (either via a timeout or a cancellation flag).
+    /// This method returns a syntax tree on success or an appropriate error
+    /// if the parser does not have a language assigned, parsing was cancelled,
+    /// or a custom encoding was specified without a `decode` function.
     ///
     /// If parsing was cancelled, you can resume from where the parser stopped
     /// by calling the method again with the same arguments. Or you can
     /// start parsing from scratch by first calling the `reset()` method.
-    pub fn parseInput(self: *Parser, input: Input, old_tree: ?*const Tree) error{NoLanguage, Cancellation}!*Tree {
+    pub fn parseInput(
+        self: *Parser,
+        input: Input,
+        old_tree: ?*const Tree,
+        options: ?Options,
+    ) error{ NoLanguage, Cancellation, InvalidEncoding }!*Tree {
         if (self.getLanguage() == null) return error.NoLanguage;
-        return ts_parser_parse(self, old_tree, input) orelse error.Cancellation;
+        if (input.encoding == .Custom and input.decode == null) return error.InvalidEncoding;
+        const new_tree = if (options) |o|
+            ts_parser_parse_with_options(self, old_tree, input, o)
+        else
+            ts_parser_parse(self, old_tree, input);
+        return new_tree orelse error.Cancellation;
     }
 
     /// Use the parser to parse some source code stored in one contiguous buffer,
     /// optionally with a given encoding (defaults to `InputEncoding.UTF_8`).
     ///
     /// See the `parseInput()` method for more details.
-    pub fn parseBuffer(self: *Parser, buffer: []const u8, old_tree: ?*const Tree,
-                       encoding: ?InputEncoding) error{NoLanguage, Cancellation}!*Tree {
+    pub fn parseBuffer(
+        self: *Parser,
+        buffer: []const u8,
+        old_tree: ?*const Tree,
+        encoding: ?InputEncoding,
+    ) error{ NoLanguage, Cancellation, InvalidEncoding }!*Tree {
         if (self.getLanguage() == null) return error.NoLanguage;
-        return ts_parser_parse_string_encoding(self, old_tree, buffer.ptr, @intCast(buffer.len),
-                                               encoding orelse InputEncoding.UTF_8) orelse error.Cancellation;
+        if (encoding == .Custom) return error.InvalidEncoding;
+        return ts_parser_parse_string_encoding(
+            self,
+            old_tree,
+            buffer.ptr,
+            @intCast(buffer.len),
+            encoding orelse InputEncoding.UTF_8,
+        ) orelse error.Cancellation;
     }
 
     /// Instruct the parser to start the next parse from the beginning.
@@ -169,6 +197,22 @@ pub const Parser = opaque {
     pub fn printDotGraphs(self: *Parser, file: ?std.fs.File) void {
         ts_parser_print_dot_graphs(self, if (file) |f| f.handle else -1);
     }
+
+    /// An object that represents the current state of the parser.
+    pub const State = extern struct {
+        payload: ?*anyopaque = null,
+        /// The byte offset in the document that the parser is currently at.
+        current_byte_offset: u32,
+        /// Indicates whether the parser has encountered an error during parsing.
+        has_error: bool,
+    };
+
+    /// An object which contains the parsing options.
+    pub const Options = extern struct {
+        payload: ?*anyopaque = null,
+        /// A callback that receives the parse state during parsing.
+        progress_callback: *const fn (state: State) callconv(.C) bool,
+    };
 };
 
 extern fn ts_parser_new() *Parser;
@@ -178,9 +222,20 @@ extern fn ts_parser_set_language(self: *Parser, language: ?*const Language) bool
 extern fn ts_parser_set_included_ranges(self: *Parser, ranges: [*c]const Range, count: u32) bool;
 extern fn ts_parser_included_ranges(self: *const Parser, count: *u32) [*c]const Range;
 extern fn ts_parser_parse(self: *Parser, old_tree: ?*const Tree, input: Input) ?*Tree;
+extern fn ts_parser_parse_with_options(
+    self: *Parser,
+    old_tree: ?*const Tree,
+    input: Input,
+    options: Parser.Options,
+) ?*Tree;
 // extern fn ts_parser_parse_string(self: *Parser, old_tree: ?*const Tree, string: [*c]const u8, length: u32) ?*Tree;
 extern fn ts_parser_parse_string_encoding(
-    self: *Parser, old_tree: ?*const Tree, string: [*c]const u8, length: u32, encoding: InputEncoding) ?*Tree;
+    self: *Parser,
+    old_tree: ?*const Tree,
+    string: [*c]const u8,
+    length: u32,
+    encoding: InputEncoding,
+) ?*Tree;
 extern fn ts_parser_reset(self: *Parser) void;
 extern fn ts_parser_set_timeout_micros(self: *Parser, timeout_micros: u64) void;
 extern fn ts_parser_timeout_micros(self: *const Parser) u64;

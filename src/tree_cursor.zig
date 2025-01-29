@@ -16,6 +16,9 @@ pub const TreeCursor = extern struct {
     context: [3]u32,
 
     /// Create a new tree cursor starting from the given node.
+    ///
+    /// Note that the given node is considered the root of the
+    /// cursor, so the cursor cannot walk outside this node.
     pub inline fn create(node: Node) TreeCursor {
         return ts_tree_cursor_new(node);
     }
@@ -108,8 +111,8 @@ pub const TreeCursor = extern struct {
         return ts_tree_cursor_goto_descendant(self, index);
     }
 
-    /// Move the cursor to the first child of its current
-    /// node that extends beyond the given byte offset.
+    /// Move the cursor to the first child of its current node
+    /// that contains or starts after the given byte offset.
     ///
     /// This returns the index of the child node if one was found, or `null`.
     pub inline fn gotoFirstChildForByte(self: *TreeCursor, byte: u32) ?u32 {
@@ -117,8 +120,8 @@ pub const TreeCursor = extern struct {
         return if (index >= 0) @intCast(index) else null;
     }
 
-    /// Move the cursor to the first child of its current
-    /// node that extends beyond the given point.
+    /// Move the cursor to the first child of its current node
+    /// that contains or starts after the given point.
     ///
     /// This returns the index of the child node if one was found, or `null`.
     pub inline fn gotoFirstChildForPoint(self: *TreeCursor, point: Point) ?u32 {

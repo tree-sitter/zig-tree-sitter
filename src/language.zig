@@ -8,20 +8,26 @@ const SymbolType = enum(c_uint) {
     Auxiliary,
 };
 
+const LanguageMetadata = extern struct {
+    major_version: u8,
+    minor_version: u8,
+    patch_version: u8,
+};
+
 const LanguageFn = *const fn () callconv(.C) *const Language;
 
 /// An opaque object that defines how to parse a particular language.
 pub const Language = opaque {
     /// Load the given language from a library at compile-time.
     pub fn load(comptime language_name: [:0]const u8) *const Language {
-        const symbol_name = std.fmt.comptimePrint("tree_sitter_{s}", .{ language_name });
+        const symbol_name = std.fmt.comptimePrint("tree_sitter_{s}", .{language_name});
         return @extern(LanguageFn, .{ .name = symbol_name })();
     }
 
     /// Load the given language from a library at runtime.
     ///
     /// This returns an error if it failed to load the library or find the symbol.
-    pub fn dynLoad(library_path: []const u8, symbol_name: [:0]const u8) error{LibError, SymError}!*const Language {
+    pub fn dynLoad(library_path: []const u8, symbol_name: [:0]const u8) error{ LibError, SymError }!*const Language {
         var library = std.DynLib.open(library_path) catch return error.LibError;
         defer library.close();
         const function = library.lookup(LanguageFn, symbol_name) orelse return error.SymError;
@@ -38,9 +44,31 @@ pub const Language = opaque {
         return ts_language_copy(self);
     }
 
+    /// Get the name of the language, if available.
+    pub fn name(self: *const Language) ?[]const u8 {
+        return if (ts_language_name(self)) |n| std.mem.span(n) else null;
+    }
+
     /// Get the ABI version number for this language.
+    pub inline fn abi_version(self: *const Language) u32 {
+        return ts_language_abi_version(self);
+    }
+
+    /// Get the semantic version for this language.
+    pub fn semantic_version(self: *const Language) ?std.SemanticVersion {
+        const data = ts_language_metadata(self) orelse return null;
+        return .{
+            .major = @intCast(data.major_version),
+            .minor = @intCast(data.minor_version),
+            .patch = @intCast(data.patch_version),
+        };
+    }
+
+    /// Get the ABI version number for this language.
+    ///
+    /// **Deprecated.** Use `abi_version()` instead.
     pub inline fn version(self: *const Language) u32 {
-        return ts_language_version(self);
+        return ts_language_abi_version(self);
     }
 
     /// Get the number of distinct node types in this language.
@@ -59,13 +87,13 @@ pub const Language = opaque {
     }
 
     /// Get the numerical id for the given field name string.
-    pub inline fn fieldIdForName(self: *const Language, name: []const u8) u32 {
-        return ts_language_field_id_for_name(self, name.ptr, @intCast(name.len));
+    pub inline fn fieldIdForName(self: *const Language, field_name: []const u8) u32 {
+        return ts_language_field_id_for_name(self, field_name.ptr, @intCast(field_name.len));
     }
 
     /// Get the field name string for the given numerical id.
-    pub fn fieldNameForId(self: *const Language, id: u16) ?[]const u8 {
-        return if (ts_language_field_name_for_id(self, id)) |name| std.mem.span(name) else null;
+    pub fn fieldNameForId(self: *const Language, field_id: u16) ?[]const u8 {
+        return if (ts_language_field_name_for_id(self, field_id)) |n| std.mem.span(n) else null;
     }
 
     /// Get the numerical id for the given node type string.
@@ -75,7 +103,7 @@ pub const Language = opaque {
 
     /// Get a node type string for the given numerical id.
     pub fn symbolName(self: *const Language, symbol: u16) ?[]const u8 {
-        return if (ts_language_symbol_name(self, symbol)) |name| std.mem.span(name) else null;
+        return if (ts_language_symbol_name(self, symbol)) |n| std.mem.span(n) else null;
     }
 
     /// Check if the node for the given numerical ID is named.
@@ -106,17 +134,35 @@ pub const Language = opaque {
     pub inline fn nextState(self: *const Language, state: u16, symbol: u16) u16 {
         return ts_language_next_state(self, state, symbol);
     }
+
+    /// Get a list of all subtype symbols for a given supertype symbol.
+    pub fn subtypes(self: *const Language, supertype: u16) []const u16 {
+        var length: u32 = 0;
+        const results = ts_language_subtypes(self, supertype, &length);
+        return if (length > 0) results[0..length] else &.{};
+    }
+
+    /// Get a list of all supertype symbols for the language.
+    pub fn supertypes(self: *const Language) []const u16 {
+        var length: u32 = 0;
+        const results = ts_language_supertypes(self, &length);
+        return if (length > 0) results[0..length] else &.{};
+    }
 };
 
+extern fn ts_language_abi_version(self: *const Language) u32;
 extern fn ts_language_copy(self: *const Language) *const Language;
 extern fn ts_language_delete(self: *const Language) void;
 extern fn ts_language_field_count(self: *const Language) u32;
 extern fn ts_language_field_id_for_name(self: *const Language, name: [*]const u8, name_length: u32) u16;
 extern fn ts_language_field_name_for_id(self: *const Language, id: u16) ?[*:0]const u8;
+extern fn ts_language_metadata(self: *const Language) ?*const LanguageMetadata;
+extern fn ts_language_name(self: *const Language) ?[*:0]const u8;
 extern fn ts_language_next_state(self: *const Language, state: u16, symbol: u16) u16;
 extern fn ts_language_state_count(self: *const Language) u32;
+extern fn ts_language_subtypes(self: *const Language, supertype: u16, length: *u32) [*c]const u16;
+extern fn ts_language_supertypes(self: *const Language, length: *u32) [*c]const u16;
 extern fn ts_language_symbol_count(self: *const Language) u32;
 extern fn ts_language_symbol_for_name(self: *const Language, string: [*]const u8, length: u32, is_named: bool) u16;
 extern fn ts_language_symbol_name(self: *const Language, symbol: u16) ?[*:0]const u8;
 extern fn ts_language_symbol_type(self: *const Language, symbol: u16) SymbolType;
-extern fn ts_language_version(self: *const Language) u32;

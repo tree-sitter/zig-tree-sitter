@@ -6,7 +6,8 @@ test "Language" {
     const language = ts.Language.load("c");
     defer language.destroy();
 
-    try testing.expectEqual(14, language.version());
+    try testing.expectEqual(14, language.abi_version());
+    try testing.expectEqual(null, language.semantic_version());
     try testing.expect(language.symbolCount() > 1);
     try testing.expect(language.fieldCount() > 1);
     try testing.expect(language.stateCount() > 1);
@@ -64,7 +65,7 @@ test "Parser" {
     try testing.expectEqual(0, parser.getTimeoutMicros());
     try testing.expectEqual(null, parser.getCancellationFlag());
 
-    try testing.expectEqualSlices(ts.Range, &.{ .{} }, parser.getIncludedRanges());
+    try testing.expectEqualSlices(ts.Range, &.{.{}}, parser.getIncludedRanges());
     try testing.expectError(error.RangeOverlap, parser.setIncludedRanges(&.{ .{ .start_byte = 1 }, .{} }));
 
     // TODO: more tests
@@ -89,9 +90,9 @@ test "Tree" {
         .start_point = .{ .row = 0, .column = 0 },
         .end_point = .{ .row = 0xFFFFFFFF, .column = 0xFFFFFFFF },
         .start_byte = 0,
-        .end_byte = 0xFFFFFFFF
+        .end_byte = 0xFFFFFFFF,
     };
-    try testing.expectEqualSlices(ts.Range, &.{ range }, ranges);
+    try testing.expectEqualSlices(ts.Range, &.{range}, ranges);
     ts.Tree.freeRanges(ranges);
 
     const old_tree = tree.dupe();
@@ -112,10 +113,10 @@ test "Tree" {
         .start_point = .{ .row = 0, .column = 0 },
         .end_point = .{ .row = 0, .column = 9 },
         .start_byte = 0,
-        .end_byte = 9
+        .end_byte = 9,
     };
     ranges = old_tree.getChangedRanges(new_tree);
-    try testing.expectEqualSlices(ts.Range, &.{ range }, ranges);
+    try testing.expectEqualSlices(ts.Range, &.{range}, ranges);
     ts.Tree.freeRanges(ranges);
 }
 
@@ -147,15 +148,15 @@ test "TreeCursor" {
     copy.destroy();
 
     try testing.expect(cursor.gotoFirstChild());
-    try testing.expectEqualStrings("function_definition", cursor.currentNode().@"type"());
+    try testing.expectEqualStrings("function_definition", cursor.currentNode().type());
     try testing.expectEqual(1, cursor.currentDepth());
 
     try testing.expect(cursor.gotoLastChild());
-    try testing.expectEqualStrings("compound_statement", cursor.currentNode().@"type"());
+    try testing.expectEqualStrings("compound_statement", cursor.currentNode().type());
     try testing.expectEqualStrings("body", cursor.currentFieldName().?);
 
     try testing.expect(cursor.gotoParent());
-    try testing.expectEqualStrings("function_definition", cursor.currentNode().@"type"());
+    try testing.expectEqualStrings("function_definition", cursor.currentNode().type());
     try testing.expectEqual(0, cursor.currentFieldId());
 
     try testing.expect(!cursor.gotoNextSibling());
@@ -187,7 +188,7 @@ test "Node" {
 
     try testing.expectEqual(161, node.symbol());
     try testing.expectEqual(161, node.grammarSymbol());
-    try testing.expectEqualStrings("translation_unit", node.@"type"());
+    try testing.expectEqualStrings("translation_unit", node.type());
     try testing.expectEqualStrings("translation_unit", node.grammarType());
 
     try testing.expect(node.isNamed());
@@ -215,22 +216,22 @@ test "Node" {
 
     node = node.child(0).?;
     try testing.expectEqual(tree.rootNode(), node.parent());
-    try testing.expectEqualStrings("function_declarator", node.namedChild(1).?.@"type"());
+    try testing.expectEqualStrings("function_declarator", node.namedChild(1).?.type());
     try testing.expectEqual(null, node.childByFieldId(1));
-    try testing.expectEqualStrings("primitive_type", node.childByFieldName("type").?.@"type"());
+    try testing.expectEqualStrings("primitive_type", node.childByFieldName("type").?.type());
 
-    try testing.expectEqualStrings("function_declarator", node.child(0).?.nextSibling().?.@"type"());
-    try testing.expectEqualStrings("function_declarator", node.child(0).?.nextNamedSibling().?.@"type"());
-    try testing.expectEqualStrings("function_declarator", node.child(2).?.prevSibling().?.@"type"());
-    try testing.expectEqualStrings("function_declarator", node.child(2).?.prevNamedSibling().?.@"type"());
+    try testing.expectEqualStrings("function_declarator", node.child(0).?.nextSibling().?.type());
+    try testing.expectEqualStrings("function_declarator", node.child(0).?.nextNamedSibling().?.type());
+    try testing.expectEqualStrings("function_declarator", node.child(2).?.prevSibling().?.type());
+    try testing.expectEqualStrings("function_declarator", node.child(2).?.prevNamedSibling().?.type());
 
     try testing.expectEqual(node, tree.rootNode().childWithDescendant(node));
-    try testing.expectEqualStrings("{", node.descendantForByteRange(11, 12).?.@"type"());
-    try testing.expectEqualStrings("compound_statement", node.namedDescendantForByteRange(11, 12).?.@"type"());
+    try testing.expectEqualStrings("{", node.descendantForByteRange(11, 12).?.type());
+    try testing.expectEqualStrings("compound_statement", node.namedDescendantForByteRange(11, 12).?.type());
 
-    const points: [2]ts.Point = .{ .{ .row = 0, .column = 4 }, .{ .row = 0, .column = 8 }};
-    try testing.expectEqualStrings("identifier", node.descendantForPointRange(points[0], points[1]).?.@"type"());
-    try testing.expectEqualStrings("identifier", node.namedDescendantForPointRange(points[0], points[1]).?.@"type"());
+    const points: [2]ts.Point = .{ .{ .row = 0, .column = 4 }, .{ .row = 0, .column = 8 } };
+    try testing.expectEqualStrings("identifier", node.descendantForPointRange(points[0], points[1]).?.type());
+    try testing.expectEqualStrings("identifier", node.namedDescendantForPointRange(points[0], points[1]).?.type());
 
     try testing.expectEqualStrings("body", node.fieldNameForChild(2).?);
     try testing.expectEqualStrings("body", node.fieldNameForNamedChild(2).?);
@@ -270,7 +271,7 @@ test "Query" {
         \\["{" "}" "(" ")"] @punctuation
         \\((identifier) @main
         \\ (#eq? @main "main"))
-        ;
+    ;
     var query = try ts.Query.create(language, source, &error_offset);
     defer query.destroy();
 
@@ -307,7 +308,7 @@ test "QueryCursor" {
         \\["{" "}" "(" ")"] @punctuation
         \\((identifier) @main
         \\ (#eq? @main "main"))
-        ;
+    ;
     var error_offset: u32 = 0;
     var query = try ts.Query.create(language, source, &error_offset);
     defer query.destroy();
@@ -322,7 +323,7 @@ test "QueryCursor" {
     const cursor = ts.QueryCursor.create();
     defer cursor.destroy();
 
-    cursor.exec(query, tree.rootNode());
+    cursor.exec(query, tree.rootNode(), null);
 
     try testing.expect(!cursor.didExceedMatchLimit());
     try testing.expectEqual(0xFFFFFFFF, cursor.getMatchLimit());
@@ -333,7 +334,7 @@ test "QueryCursor" {
     try testing.expectEqual(0, match.pattern_index);
     try testing.expectEqual(1, match.captures.len);
     try testing.expectEqual(0, match.captures[0].index);
-    try testing.expectEqualStrings("identifier", match.captures[0].node.@"type"());
+    try testing.expectEqualStrings("identifier", match.captures[0].node.type());
 
     _ = cursor.nextMatch();
 
@@ -342,5 +343,5 @@ test "QueryCursor" {
     try testing.expectEqual(1, match.pattern_index);
     try testing.expectEqual(1, match.captures.len);
     try testing.expectEqual(1, match.captures[0].index);
-    try testing.expectEqualStrings("(", match.captures[0].node.@"type"());
+    try testing.expectEqualStrings("(", match.captures[0].node.type());
 }

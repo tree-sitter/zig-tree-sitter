@@ -43,7 +43,7 @@ pub const Tree = opaque {
     pub fn getIncludedRanges(self: *const Tree) []const Range {
         var length: u32 = 0;
         const ranges = ts_tree_included_ranges(self, &length);
-        return ranges[0..length];
+        return if (length > 0) ranges[0..length] else &.{};
     }
 
     /// Compare an old edited syntax tree to a new syntax
@@ -53,11 +53,16 @@ pub const Tree = opaque {
     /// For this to work correctly, this tree must have been
     /// edited such that its ranges match up to the new tree.
     ///
+    /// The returned ranges indicate areas where the hierarchical
+    /// structure of syntax nodes (from root to leaf) has changed
+    /// between the old and new trees. Characters outside these
+    /// ranges have identical ancestor nodes in both trees.
+    ///
     /// The caller is responsible for freeing them using `freeRanges()`.
     pub fn getChangedRanges(self: *const Tree, new_tree: *const Tree) []const Range {
         var length: u32 = 0;
         const ranges = ts_tree_get_changed_ranges(self, new_tree, &length);
-        return ranges[0..length];
+        return if (length > 0) ranges[0..length] else &.{};
     }
 
     /// Free the ranges allocated with `getIncludedRanges()` or `getChangedRanges()`.

@@ -128,7 +128,7 @@ pub const Node = extern struct {
             .start_byte = self.startByte(),
             .end_byte = self.endByte(),
             .start_point = self.startPoint(),
-            .end_point = self.endPoint()
+            .end_point = self.endPoint(),
         };
     }
 
@@ -183,6 +183,16 @@ pub const Node = extern struct {
         return ts_node_named_child(self, child_index).orNull();
     }
 
+    /// Get the node's first child that contains or starts after the given byte offset.
+    pub inline fn firstChildForByte(self: Node, byte: u32) ?Node {
+        return ts_node_first_child_for_byte(self, byte).orNull();
+    }
+
+    /// Get the node's first *named* child that contains or starts after the given byte offset.
+    pub inline fn firstNamedChildForByte(self: Node, byte: u32) ?Node {
+        return ts_node_first_named_child_for_byte(self, byte).orNull();
+    }
+
     /// Get the node's child with the given numerical field id.
     pub inline fn childByFieldId(self: Node, field_id: u16) ?Node {
         return ts_node_child_by_field_id(self, field_id).orNull();
@@ -191,15 +201,6 @@ pub const Node = extern struct {
     /// Get the node's child with the given field name.
     pub inline fn childByFieldName(self: Node, name: []const u8) ?Node {
         return ts_node_child_by_field_name(self, name.ptr, @intCast(name.len)).orNull();
-    }
-
-    /// **Deprecated.** Use `childWithDescendant` instead.
-    ///
-    /// Get the node's child containing `descendant`.
-    ///
-    /// This will not return the descendant if it is a direct child of `self`.
-    pub inline fn childContainingDescendant(self: Node, descendant: Node) ?Node {
-        return ts_node_child_containing_descendant(self, descendant).orNull();
     }
 
     /// Get the node that contains `descendant`.
@@ -266,18 +267,16 @@ pub const Node = extern struct {
         if (std.mem.eql(u8, fmt, "s")) {
             const sexp = self.toSexp();
             defer freeSexp(sexp);
-            return writer.print("{s}", .{ sexp });
+            return writer.print("{s}", .{sexp});
         }
 
         if (fmt.len == 0 or std.mem.eql(u8, fmt, "any")) {
-            return writer.print(
-                "Node(id=0x{x}, type={s}, start={d}, end={d})", .{
-                    @intFromPtr(self.id),
-                    self.@"type"(),
-                    self.startByte(),
-                    self.endByte()
-                }
-            );
+            return writer.print("Node(id=0x{x}, type={s}, start={d}, end={d})", .{
+                @intFromPtr(self.id),
+                self.type(),
+                self.startByte(),
+                self.endByte(),
+            });
         }
 
         return std.fmt.invalidFmtError(fmt, self);
