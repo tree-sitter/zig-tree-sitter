@@ -39,7 +39,7 @@ pub fn build(b: *std.Build) void {
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
-    const run_step = b.step("run", "Run the app");
+    const run_step = b.step("run", "Run the example");
     run_step.dependOn(&run_cmd.step);
 }
 ```
@@ -69,7 +69,7 @@ pub fn main() !void {
     defer tree.destroy();
 
     const node = tree.rootNode();
-    std.debug.assert(std.mem.eql(u8, node.@"type"(), "source_file"));
+    std.debug.assert(std.mem.eql(u8, node.type(), "source_file"));
     std.debug.assert(node.endPoint().cmp(.{ .row = 0, .column = 22 }) == 0);
 
     // Create a query and execute it
@@ -84,7 +84,7 @@ pub fn main() !void {
     // Get the captured node of the first match
     const match = cursor.nextMatch().?;
     const capture = match.captures[0].node;
-    std.debug.assert(std.mem.eql(u8, capture.@"type"(), "identifier"));
+    std.debug.assert(std.mem.eql(u8, capture.type(), "identifier"));
 }
 ```
 
