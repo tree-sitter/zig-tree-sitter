@@ -1,5 +1,5 @@
 .{
-    .name = "tree_sitter",
+    .name = "tree-sitter",
 
     .version = "0.24.2",
 
