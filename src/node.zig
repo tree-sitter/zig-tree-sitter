@@ -1,10 +1,11 @@
 const std = @import("std");
 
-const InputEdit = @import("types.zig").InputEdit;
-const Point = @import("types.zig").Point;
-const Range = @import("types.zig").Range;
+const InputEdit = @import("tree.zig").InputEdit;
 const Language = @import("language.zig").Language;
+const Point = @import("point.zig").Point;
+const Range = @import("point.zig").Range;
 const Tree = @import("tree.zig").Tree;
+const TreeCursor = @import("tree_cursor.zig").TreeCursor;
 
 /// A single node within a syntax tree.
 pub const Node = extern struct {
@@ -19,110 +20,116 @@ pub const Node = extern struct {
     /// then that node will have the same ID in both trees.
     id: *const anyopaque,
 
-    /// The syntax tree this node belongs to.
+    /// **Internal.** The syntax tree this node belongs to.
     tree: *const Tree,
 
     /// Check if two nodes are identical.
-    pub inline fn eql(self: Node, other: Node) bool {
+    pub fn eql(self: Node, other: Node) bool {
         return ts_node_eq(self, other);
     }
 
-    /// Get the node's language.
-    pub inline fn language(self: Node) *const Language {
-        return ts_node_language(self);
-    }
-
-    /// Get the numerical ID of the node's type.
-    pub inline fn symbol(self: Node) u16 {
+    /// Get this node's type as a numerical id.
+    pub fn kindId(self: Node) u16 {
         return ts_node_symbol(self);
     }
 
-    /// Get the numerical ID of the node's type,
-    /// as it appears in the grammar ignoring aliases.
-    pub inline fn grammarSymbol(self: Node) u16 {
+    /// Get the node's type as a numerical id as it appears in the grammar
+    /// ignoring aliases.
+    pub fn grammarId(self: Node) u16 {
         return ts_node_grammar_symbol(self);
     }
 
-    /// Get the type of the node.
-    pub fn @"type"(self: Node) []const u8 {
+    /// Get this node's type as a string.
+    pub fn kind(self: Node) []const u8 {
         return std.mem.span(ts_node_type(self));
     }
 
-    /// Get the type of the node, as it appears in the grammar ignoring aliases.
-    pub fn grammarType(self: Node) []const u8 {
+    /// Get this node's symbol name as it appears in the grammar ignoring
+    /// aliases as a string.
+    pub fn grammarKind(self: Node) []const u8 {
         return std.mem.span(ts_node_grammar_type(self));
     }
 
-    /// Check if the node is *named*.
+    /// Get the language that was used to parse this node's syntax tree.
+    pub fn getLanguage(self: Node) *const Language {
+        return ts_node_language(self);
+    }
+
+    /// Check if this node is *named*.
     ///
     /// Named nodes correspond to named rules in the grammar,
     /// whereas *anonymous* nodes correspond to string literals.
-    pub inline fn isNamed(self: Node) bool {
+    pub fn isNamed(self: Node) bool {
         return ts_node_is_named(self);
     }
 
-    /// Check if the node is *extra*.
+    /// Check if this node is *extra*.
     ///
-    /// Extra nodes represent things which are not required
-    /// by the grammar but can appear anywhere (e.g. whitespace).
-    pub inline fn isExtra(self: Node) bool {
+    /// Extra nodes represent things like comments, which are not required by the
+    /// grammar, but can appear anywhere.
+    pub fn isExtra(self: Node) bool {
         return ts_node_is_extra(self);
     }
 
-    /// Check if the node is a syntax error.
-    pub inline fn isError(self: Node) bool {
-        return ts_node_is_error(self);
-    }
-
-    /// Check if the node is *missing*.
-    ///
-    /// Missing nodes are inserted by the parser in order
-    /// to recover from certain kinds of syntax errors.
-    pub inline fn isMissing(self: Node) bool {
-        return ts_node_is_missing(self);
-    }
-
     /// Check if the node has been edited.
-    pub inline fn hasChanges(self: Node) bool {
+    pub fn hasChanges(self: Node) bool {
         return ts_node_has_changes(self);
     }
 
-    /// Check if the node is a syntax error, or contains any syntax errors.
-    pub inline fn hasError(self: Node) bool {
+    /// Check if this node represents a syntax error or contains any syntax
+    /// errors anywhere within it.
+    pub fn hasError(self: Node) bool {
         return ts_node_has_error(self);
     }
 
-    /// Get the parse state of this node.
-    pub inline fn parseState(self: Node) u16 {
+    /// Check if this node represents a syntax error.
+    ///
+    /// Syntax errors represent parts of the code that could not be incorporated
+    /// into a valid syntax tree.
+    pub fn isError(self: Node) bool {
+        return ts_node_is_error(self);
+    }
+
+    /// Check if this node is *missing*.
+    ///
+    /// Missing nodes are inserted by the parser in order to recover from
+    /// certain kinds of syntax errors.
+    pub fn isMissing(self: Node) bool {
+        return ts_node_is_missing(self);
+    }
+
+    /// Get this node's parse state.
+    pub fn parseState(self: Node) u16 {
         return ts_node_parse_state(self);
     }
 
     /// Get the parse state after this node.
-    pub inline fn nextParseState(self: Node) u16 {
+    pub fn nextParseState(self: Node) u16 {
         return ts_node_next_parse_state(self);
     }
 
-    /// Get the start byte of the node.
-    pub inline fn startByte(self: Node) u32 {
+    /// Get the byte offset where this node starts.
+    pub fn startByte(self: Node) u32 {
         return ts_node_start_byte(self);
     }
 
-    /// Get the end byte of the node.
-    pub inline fn endByte(self: Node) u32 {
+    /// Get the byte offset where this node ends.
+    pub fn endByte(self: Node) u32 {
         return ts_node_end_byte(self);
     }
 
-    /// The start point of the node.
-    pub inline fn startPoint(self: Node) Point {
+    /// Get this node's start position in terms of rows and columns.
+    pub fn startPoint(self: Node) Point {
         return ts_node_start_point(self);
     }
 
-    /// Get the end point of the node.
-    pub inline fn endPoint(self: Node) Point {
+    /// Get this node's end position in terms of rows and columns.
+    pub fn endPoint(self: Node) Point {
         return ts_node_end_point(self);
     }
 
-    /// Get the range of the node.
+    /// Get the range of source code that this node represents, both in terms of
+    /// raw bytes and of row/column coordinates.
     pub fn range(self: Node) Range {
         return .{
             .start_byte = self.startByte(),
@@ -132,132 +139,238 @@ pub const Node = extern struct {
         };
     }
 
-    /// Get the number of the node's children.
-    pub inline fn childCount(self: Node) u32 {
-        return ts_node_child_count(self);
-    }
-
-    /// Get the number of the node's *named* children.
-    pub inline fn namedChildCount(self: Node) u32 {
-        return ts_node_named_child_count(self);
-    }
-
-    /// Get the number of the node's descendants,
-    /// including the node itself.
-    pub inline fn descendantCount(self: Node) u32 {
-        return ts_node_descendant_count(self);
-    }
-
-    /// Get the node's immediate parent.
-    pub inline fn parent(self: Node) ?Node {
-        return ts_node_parent(self).orNull();
-    }
-
-    /// Get the node's next sibling.
-    pub inline fn nextSibling(self: Node) ?Node {
-        return ts_node_next_sibling(self).orNull();
-    }
-
-    /// Get the node's next *named* sibling.
-    pub inline fn nextNamedSibling(self: Node) ?Node {
-        return ts_node_next_named_sibling(self).orNull();
-    }
-
-    /// Get the node's previous sibling.
-    pub inline fn prevSibling(self: Node) ?Node {
-        return ts_node_prev_sibling(self).orNull();
-    }
-
-    /// Get the node's previous *named* sibling.
-    pub inline fn prevNamedSibling(self: Node) ?Node {
-        return ts_node_prev_named_sibling(self).orNull();
-    }
-
-    /// Get the node's child at the given index.
-    pub inline fn child(self: Node, child_index: u32) ?Node {
+    /// Get the node's child at the given index, where zero represents the first
+    /// child.
+    ///
+    /// This method is fairly fast, but its cost is technically log(i), so if
+    /// you might be iterating over a long list of children, you should use
+    /// `Node.children()` instead.
+    pub fn child(self: Node, child_index: u32) ?Node {
         return ts_node_child(self, child_index).orNull();
     }
 
-    /// Get the node's *named* child at the given index.
-    pub inline fn namedChild(self: Node, child_index: u32) ?Node {
+    /// Get this node's number of children.
+    pub fn childCount(self: Node) u32 {
+        return ts_node_child_count(self);
+    }
+
+    /// Get this node's *named* child at the given index.
+    ///
+    /// See also `Node.isNamed()`.
+    /// This method is fairly fast, but its cost is technically log(i), so if
+    /// you might be iterating over a long list of children, you should use
+    /// `Node.namedChildren()` instead.
+    pub fn namedChild(self: Node, child_index: u32) ?Node {
         return ts_node_named_child(self, child_index).orNull();
     }
 
-    /// Get the node's first child that contains or starts after the given byte offset.
-    pub inline fn firstChildForByte(self: Node, byte: u32) ?Node {
-        return ts_node_first_child_for_byte(self, byte).orNull();
+    /// Get this node's number of *named* children.
+    ///
+    /// See also `Node.isNamed()`.
+    pub fn namedChildCount(self: Node) u32 {
+        return ts_node_named_child_count(self);
     }
 
-    /// Get the node's first *named* child that contains or starts after the given byte offset.
-    pub inline fn firstNamedChildForByte(self: Node, byte: u32) ?Node {
-        return ts_node_first_named_child_for_byte(self, byte).orNull();
-    }
-
-    /// Get the node's child with the given numerical field id.
-    pub inline fn childByFieldId(self: Node, field_id: u16) ?Node {
-        return ts_node_child_by_field_id(self, field_id).orNull();
-    }
-
-    /// Get the node's child with the given field name.
-    pub inline fn childByFieldName(self: Node, name: []const u8) ?Node {
+    /// Get the first child with the given field name.
+    ///
+    /// If multiple children may have the same field name, access them using
+    /// `Node.children_by_field_name`.
+    pub fn childByFieldName(self: Node, name: []const u8) ?Node {
         return ts_node_child_by_field_name(self, name.ptr, @intCast(name.len)).orNull();
     }
 
-    /// Get the node that contains `descendant`.
-    pub inline fn childWithDescendant(self: Node, descendant: Node) ?Node {
-        return ts_node_child_with_descendant(self, descendant).orNull();
+    /// Get this node's child with the given numerical field id.
+    ///
+    /// See also `Node.childByFieldName()`. You can
+    /// convert a field name to an id using `Language.fieldIdForName()`.
+    pub fn childByFieldId(self: Node, field_id: u16) ?Node {
+        return ts_node_child_by_field_id(self, field_id).orNull();
     }
 
-    /// Get the smallest node within this node that spans the given byte range.
-    pub inline fn descendantForByteRange(self: Node, start: u32, end: u32) ?Node {
-        return ts_node_descendant_for_byte_range(self, start, end).orNull();
-    }
-
-    /// Get the smallest *named* node within this node that spans the given byte range.
-    pub inline fn namedDescendantForByteRange(self: Node, start: u32, end: u32) ?Node {
-        return ts_node_named_descendant_for_byte_range(self, start, end).orNull();
-    }
-
-    /// Get the smallest node within this node that spans the given point range.
-    pub inline fn descendantForPointRange(self: Node, start: Point, end: Point) ?Node {
-        return ts_node_descendant_for_point_range(self, start, end).orNull();
-    }
-
-    /// Get the smallest *named* node within this node that spans the given point range.
-    pub inline fn namedDescendantForPointRange(self: Node, start: Point, end: Point) ?Node {
-        return ts_node_named_descendant_for_point_range(self, start, end).orNull();
-    }
-
-    /// Get the field name for the node's child at the given index.
+    /// Get the field name of this node's child at the given index.
     pub fn fieldNameForChild(self: Node, child_index: u32) ?[]const u8 {
         return if (ts_node_field_name_for_child(self, child_index)) |name| std.mem.span(name) else null;
     }
 
-    /// Get the field name for the node's named child at the given index.
+    /// Get the field name of this node's named child at the given index.
     pub fn fieldNameForNamedChild(self: Node, child_index: u32) ?[]const u8 {
         return if (ts_node_field_name_for_named_child(self, child_index)) |name| std.mem.span(name) else null;
     }
 
-    /// Edit the node to keep it in-sync with source code that has been edited.
+    /// Iterate over this node's children.
     ///
-    /// This function is only rarely needed. When you edit a syntax tree with the
-    /// `Tree.edit()` function, all of the nodes that you retrieve from the tree
-    /// afterward will already reflect the edit. You only need to use this when you
-    /// have a `Node` instance that you want to keep and continue to use after an edit.
-    pub inline fn edit(self: *Node, input_edit: InputEdit) void {
-        ts_node_edit(self, &input_edit);
+    /// A `TreeCursor` is used to retrieve the children efficiently. Obtain
+    /// a `TreeCursor` by calling `Tree.walk()` or `Node.walk()`. To avoid
+    /// unnecessary allocations, you should reuse the same cursor for
+    /// subsequent calls to this method.
+    ///
+    /// If you're walking the tree recursively, you may want to use the
+    /// `TreeCursor` APIs directly instead.
+    ///
+    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
+    pub fn children(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+        cursor.reset(self);
+        cursor.gotoFirstChild();
+        var result = try std.ArrayList(Node).initCapacity(allocator, self.childCount());
+        errdefer result.deinit();
+        while (cursor.gotoNextSibling()) {
+            try result.append(cursor.node());
+        }
+        return result;
+    }
+
+    /// Iterate over this node's named children.
+    ///
+    /// See also `Node.children()`.
+    ///
+    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
+    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+        cursor.reset(self);
+        cursor.gotoFirstChild();
+        var result = try std.ArrayList(Node).initCapacity(allocator, self.namedChildCount());
+        errdefer result.deinit();
+        while (cursor.gotoNextSibling()) {
+            if (cursor.node().isNamed()) {
+                try result.append(cursor.node());
+            }
+        }
+        return result;
+    }
+
+    /// Iterate over this node's children with a given field name.
+    ///
+    /// See also `Node.children()`.
+    ///
+    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
+    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+        const field_id = self.language().fieldIdForName(field_name);
+        return self.childrenByFieldId(field_id, cursor, allocator);
+    }
+
+    /// Iterate over this node's children with a given field id.
+    ///
+    /// See also `Node.childrenByFieldName()`.
+    ///
+    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
+    pub fn childrenByFieldId(self: Node, field_id: u16, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+        if (field_id == 0) {
+            return std.ArrayList(Node).init(allocator);
+        }
+
+        cursor.reset(self);
+        cursor.gotoFirstChild();
+        var result = try std.ArrayList(Node).init(allocator);
+        errdefer result.deinit();
+        while (cursor.fieldId() != field_id) {
+            if (!cursor.gotoNextSibling()) {
+                return result;
+            }
+        }
+        while (true) {
+            try result.append(cursor.node());
+            if (!cursor.gotoNextSibling()) {
+                return result;
+            }
+        }
+    }
+
+    /// Get this node's immediate parent.
+    /// Prefer `Node.child_with_descendant()` for iterating over this node's ancestors.
+    pub fn parent(self: Node) ?Node {
+        return ts_node_parent(self).orNull();
+    }
+
+    /// Get the node that contains `descendant`.
+    ///
+    /// Note that this can return `descendant` itself.
+    pub fn childWithDescendant(self: Node, descendant: Node) ?Node {
+        return ts_node_child_with_descendant(self, descendant).orNull();
+    }
+
+    /// Get this node's next sibling.
+    pub fn nextSibling(self: Node) ?Node {
+        return ts_node_next_sibling(self).orNull();
+    }
+
+    /// Get this node's previous sibling.
+    pub fn prevSibling(self: Node) ?Node {
+        return ts_node_prev_sibling(self).orNull();
+    }
+
+    /// Get this node's next named sibling.
+    pub fn nextNamedSibling(self: Node) ?Node {
+        return ts_node_next_named_sibling(self).orNull();
+    }
+
+    /// Get this node's previous named sibling.
+    pub fn prevNamedSibling(self: Node) ?Node {
+        return ts_node_prev_named_sibling(self).orNull();
+    }
+
+    /// Get this node's first child that contains or starts after the given byte offset.
+    pub fn firstChildForByte(self: Node, byte: u32) ?Node {
+        return ts_node_first_child_for_byte(self, byte).orNull();
+    }
+
+    /// Get this node's first *named* child that contains or starts after the given byte offset.
+    pub fn firstNamedChildForByte(self: Node, byte: u32) ?Node {
+        return ts_node_first_named_child_for_byte(self, byte).orNull();
+    }
+
+    /// Get the node's number of descendants, including one for the node itself.
+    pub fn descendantCount(self: Node) u32 {
+        return ts_node_descendant_count(self);
+    }
+
+    /// Get the smallest node within this node that spans the given byte range.
+    pub fn descendantForByteRange(self: Node, start: u32, end: u32) ?Node {
+        return ts_node_descendant_for_byte_range(self, start, end).orNull();
+    }
+
+    /// Get the smallest *named* node within this node that spans the given byte range.
+    pub fn namedDescendantForByteRange(self: Node, start: u32, end: u32) ?Node {
+        return ts_node_named_descendant_for_byte_range(self, start, end).orNull();
+    }
+
+    /// Get the smallest node within this node that spans the given point range.
+    pub fn descendantForPointRange(self: Node, start: Point, end: Point) ?Node {
+        return ts_node_descendant_for_point_range(self, start, end).orNull();
+    }
+
+    /// Get the smallest *named* node within this node that spans the given point range.
+    pub fn namedDescendantForPointRange(self: Node, start: Point, end: Point) ?Node {
+        return ts_node_named_descendant_for_point_range(self, start, end).orNull();
     }
 
     /// Get an S-expression representing the node.
     ///
     /// The caller is responsible for freeing it using `freeSexp`.
-    pub fn toSexp(self: Node) []const u8 {
+    pub fn toSexp(self: Node) [:0]const u8 {
         return std.mem.span(ts_node_string(self));
     }
 
     /// Free an S-expression allocated with `toSexp()`.
-    pub fn freeSexp(sexp: []const u8) void {
-        std.c.free(@ptrCast(@constCast(sexp)));
+    pub fn freeSexp(sexp: [:0]const u8) void {
+        ts_current_free(@ptrCast(@constCast(sexp)));
+    }
+
+    /// Create a new `TreeCursor` starting from this node.
+    ///
+    /// Note that the given node is considered the root of the cursor,
+    /// and the cursor cannot walk outside this node.
+    pub fn walk(self: Node) TreeCursor {
+        return ts_tree_cursor_new(self);
+    }
+
+    /// Edit this node to keep it in-sync with source code that has been edited.
+    ///
+    /// This function is only rarely needed. When you edit a syntax tree with
+    /// the `Tree.edit()` method, all of the nodes that you retrieve from
+    /// the tree afterward will already reflect the edit. You only need to
+    /// use `Node.edit()` when you have a specific `Node` instance that
+    /// you want to keep and continue to use after an edit.
+    pub fn edit(self: *Node, input_edit: InputEdit) void {
+        ts_node_edit(self, &input_edit);
     }
 
     /// Format the node as a string.
@@ -273,7 +386,7 @@ pub const Node = extern struct {
         if (fmt.len == 0 or std.mem.eql(u8, fmt, "any")) {
             return writer.print("Node(id=0x{x}, type={s}, start={d}, end={d})", .{
                 @intFromPtr(self.id),
-                self.type(),
+                self.kind(),
                 self.startByte(),
                 self.endByte(),
             });
@@ -282,11 +395,12 @@ pub const Node = extern struct {
         return std.fmt.invalidFmtError(fmt, self);
     }
 
-    inline fn orNull(self: Node) ?Node {
+    fn orNull(self: Node) ?Node {
         return if (!ts_node_is_null(self)) self else null;
     }
 };
 
+extern var ts_current_free: *const fn ([*]u8) callconv(.C) void;
 extern fn ts_node_child(self: Node, child_index: u32) Node;
 extern fn ts_node_child_by_field_id(self: Node, field_id: u16) Node;
 extern fn ts_node_child_by_field_name(self: Node, name: [*]const u8, name_length: u32) Node;
@@ -330,3 +444,4 @@ extern fn ts_node_start_point(self: Node) Point;
 extern fn ts_node_string(self: Node) [*c]u8;
 extern fn ts_node_symbol(self: Node) u16;
 extern fn ts_node_type(self: Node) [*:0]const u8;
+extern fn ts_tree_cursor_new(node: Node) TreeCursor;

@@ -16,13 +16,17 @@ const QueryError = enum(c_uint) {
 /// A set of patterns that match nodes in a syntax tree.
 pub const Query = opaque {
     /// Create a new query from a string containing one or more S-expression
-    /// patterns. The query is associated with a particular language
-    /// and can only be run on syntax nodes parsed with that language.
+    /// patterns.
+    ///
+    /// The query is associated with a particular language, and can only be run
+    /// on syntax nodes parsed with that language. References to Queries can be
+    /// shared between multiple threads.
     ///
     /// If a pattern is invalid, this returns a `Query.Error` and writes
     /// the byte offset of the error to the `error_offset` parameter.
     ///
-    /// **Example:**
+    /// Example:
+    ///
     /// ```zig
     /// var error_offset: u32 = 0;
     /// const query = Query.create(language, "(identifier) @variable", &error_offset)
@@ -42,38 +46,38 @@ pub const Query = opaque {
         };
     }
 
-    /// Delete the query, freeing all of the memory that it used.
-    pub inline fn destroy(self: *Query) void {
+    /// Destroy the query, freeing all of the memory that it used.
+    pub fn destroy(self: *Query) void {
         ts_query_delete(self);
     }
 
-    /// Get the number of patterns in the query.
-    pub inline fn patternCount(self: *const Query) u32 {
-        return ts_query_pattern_count(self);
-    }
-
-    /// Get the number of captures in the query.
-    pub inline fn captureCount(self: *const Query) u32 {
-        return ts_query_capture_count(self);
-    }
-
-    /// Get the number of literal strings in the query.
-    pub inline fn stringCount(self: *const Query) u32 {
-        return ts_query_string_count(self);
-    }
-
     /// Get the byte offset where the given pattern starts in the query's source.
-    pub inline fn startByteForPattern(self: *const Query, pattern_index: u32) u32 {
+    pub fn startByteForPattern(self: *const Query, pattern_index: u32) u32 {
         return ts_query_start_byte_for_pattern(self, pattern_index);
     }
 
     /// Get the byte offset where the given pattern ends in the query's source.
-    pub inline fn endByteForPattern(self: *const Query, pattern_index: u32) u32 {
+    pub fn endByteForPattern(self: *const Query, pattern_index: u32) u32 {
         return ts_query_end_byte_for_pattern(self, pattern_index);
     }
 
+    /// Get the number of patterns in the query.
+    pub fn patternCount(self: *const Query) u32 {
+        return ts_query_pattern_count(self);
+    }
+
+    /// Get the number of captures in the query.
+    pub fn captureCount(self: *const Query) u32 {
+        return ts_query_capture_count(self);
+    }
+
+    /// Get the number of literal strings in the query.
+    pub fn stringCount(self: *const Query) u32 {
+        return ts_query_string_count(self);
+    }
+
     /// Check if the given pattern in the query has a single root node.
-    pub inline fn isPatternRooted(self: *const Query, pattern_index: u32) bool {
+    pub fn isPatternRooted(self: *const Query, pattern_index: u32) bool {
         return ts_query_is_pattern_rooted(self, pattern_index);
     }
 
@@ -83,14 +87,14 @@ pub const Query = opaque {
     /// repeating sequence of nodes, as specified by the grammar. Non-local
     /// patterns disable certain optimizations that would otherwise be possible
     /// when executing a query on a specific range of a syntax tree.
-    pub inline fn isPatternNonLocal(self: *const Query, pattern_index: u32) bool {
+    pub fn isPatternNonLocal(self: *const Query, pattern_index: u32) bool {
         return ts_query_is_pattern_non_local(self, pattern_index);
     }
 
     /// Check if a given pattern is guaranteed to match once a given step is reached.
     ///
     /// The step is specified by its byte offset in the query's source code.
-    pub inline fn isPatternGuaranteedAtStep(self: *const Query, byte_offset: u32) bool {
+    pub fn isPatternGuaranteedAtStep(self: *const Query, byte_offset: u32) bool {
         return ts_query_is_pattern_guaranteed_at_step(self, byte_offset);
     }
 
@@ -105,7 +109,7 @@ pub const Query = opaque {
     }
 
     /// Get the quantifier of the query's captures.
-    pub inline fn captureQuantifierForId(self: *const Query, pattern_index: u32, capture_index: u32) ?Quantifier {
+    pub fn captureQuantifierForId(self: *const Query, pattern_index: u32, capture_index: u32) ?Quantifier {
         if (pattern_index >= self.patternCount() or capture_index >= self.captureCount()) return null;
         return ts_query_capture_quantifier_for_id(self, pattern_index, capture_index);
     }
@@ -126,7 +130,7 @@ pub const Query = opaque {
     /// This prevents the capture from being returned in matches
     /// and also avoids any resource usage associated with recording
     /// the capture. Currently, there is no way to undo this.
-    pub inline fn disableCapture(self: *Query, name: []const u8) void {
+    pub fn disableCapture(self: *Query, name: []const u8) void {
         ts_query_disable_capture(self, name.ptr, @intCast(name.len));
     }
 
@@ -134,7 +138,7 @@ pub const Query = opaque {
     ///
     /// This prevents the pattern from matching and removes most of the overhead
     /// associated with the pattern. Currently, there is no way to undo this.
-    pub inline fn disablePattern(self: *Query, pattern_index: u32) void {
+    pub fn disablePattern(self: *Query, pattern_index: u32) void {
         ts_query_disable_pattern(self, pattern_index);
     }
 
