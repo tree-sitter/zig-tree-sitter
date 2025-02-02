@@ -25,11 +25,11 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe);
 
-    const tree_sitter = b.dependency("tree_sitter", .{
+    const tree_sitter = b.dependency("tree-sitter", .{
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
+    exe.root_module.addImport("tree-sitter", tree_sitter.module("tree-sitter"));
 
     const tree_sitter_zig = b.dependency("tree_sitter_zig", .{
         .target = target,
@@ -51,7 +51,7 @@ pub fn build(b: *std.Build) void {
 
 ```zig
 const std = @import("std");
-const ts = @import("tree_sitter");
+const ts = @import("tree-sitter");
 
 extern fn tree_sitter_zig() callconv(.C) *ts.Language;
 

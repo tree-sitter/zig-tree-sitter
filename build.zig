@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) !void {
 
     b.installArtifact(lib);
 
-    const module = b.addModule("tree_sitter", .{
+    const module = b.addModule("tree-sitter", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
@@ -28,7 +28,7 @@ pub fn build(b: *std.Build) !void {
     module.linkLibrary(lib);
 
     const docs = b.addObject(.{
-        .name = "tree_sitter",
+        .name = "tree-sitter",
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = .Debug,
