@@ -2,8 +2,10 @@ const std = @import("std");
 const testing = std.testing;
 const ts = @import("root.zig");
 
+extern fn tree_sitter_c() *const ts.Language;
+
 test "Language" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     try testing.expectEqual(14, language.abi_version());
@@ -26,7 +28,7 @@ test "Language" {
 }
 
 test "LookaheadIterator" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     const state = language.nextState(1, 161);
@@ -53,7 +55,7 @@ test "LookaheadIterator" {
 }
 
 test "Parser" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     const parser = ts.Parser.create();
@@ -72,7 +74,7 @@ test "Parser" {
 }
 
 test "Tree" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     const parser = ts.Parser.create();
@@ -121,7 +123,7 @@ test "Tree" {
 }
 
 test "TreeCursor" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     const parser = ts.Parser.create();
@@ -172,7 +174,7 @@ test "TreeCursor" {
 }
 
 test "Node" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     const parser = ts.Parser.create();
@@ -259,7 +261,7 @@ test "Node" {
 }
 
 test "Query" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     var error_offset: u32 = 0;
@@ -300,7 +302,7 @@ test "Query" {
 }
 
 test "QueryCursor" {
-    const language = ts.Language.load("c");
+    const language = tree_sitter_c();
     defer language.destroy();
 
     const source =

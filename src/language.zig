@@ -18,22 +18,6 @@ const LanguageFn = *const fn () callconv(.C) *const Language;
 
 /// An opaque object that defines how to parse a particular language.
 pub const Language = opaque {
-    /// Load the given language from a library at compile-time.
-    pub fn load(comptime language_name: [:0]const u8) *const Language {
-        const symbol_name = std.fmt.comptimePrint("tree_sitter_{s}", .{language_name});
-        return @extern(LanguageFn, .{ .name = symbol_name })();
-    }
-
-    /// Load the given language from a library at runtime.
-    ///
-    /// This returns an error if it failed to load the library or find the symbol.
-    pub fn dynLoad(library_path: []const u8, symbol_name: [:0]const u8) error{ LibError, SymError }!*const Language {
-        var library = std.DynLib.open(library_path) catch return error.LibError;
-        defer library.close();
-        const function = library.lookup(LanguageFn, symbol_name) orelse return error.SymError;
-        return function();
-    }
-
     /// Free any dynamically-allocated resources for this language, if this is the last reference.
     pub inline fn destroy(self: *const Language) void {
         ts_language_delete(self);
