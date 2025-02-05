@@ -216,7 +216,7 @@ pub const Parser = opaque {
         input: Input,
         old_tree: ?*const Tree,
     ) ?*Tree {
-        return ts_parser_parse(self, old_tree, input, null);
+        return ts_parser_parse(self, old_tree, input);
     }
 
     /// Use the parser to parse some source code and create a syntax tree, with some options.
