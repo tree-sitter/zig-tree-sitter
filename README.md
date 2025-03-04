@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe);
 
-    const tree_sitter = b.dependency("tree-sitter", .{
+    const tree_sitter = b.dependency("tree_sitter", .{
         .target = target,
         .optimize = optimize,
     });
