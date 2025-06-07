@@ -10,6 +10,7 @@ pub const MIN_COMPATIBLE_LANGUAGE_VERSION = 13;
 const language = @import("language.zig");
 const parser = @import("parser.zig");
 const tree = @import("tree.zig");
+const wasm = @import("wasm.zig");
 
 pub const set_allocator = @import("alloc.zig").ts_set_allocator;
 
@@ -25,6 +26,8 @@ pub const Tree = tree.Tree;
 pub const TreeCursor = @import("tree_cursor.zig").TreeCursor;
 pub const Query = @import("query.zig").Query;
 pub const QueryCursor = @import("query_cursor.zig").QueryCursor;
+pub const WasmEngine = wasm.WasmEngine;
+pub const WasmStore = wasm.WasmStore;
 
 const structs = @import("point.zig");
 pub const Point = structs.Point;

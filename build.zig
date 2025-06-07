@@ -3,39 +3,35 @@ const std = @import("std");
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const wasm = b.option(bool, "enable-wasm", "Enable Wasm support") orelse false;
+
+    const options = b.addOptions();
+    options.addOption(@TypeOf(wasm), "wasm_enabled", wasm);
 
     const core = b.dependency("tree_sitter", .{
         .target = target,
         .optimize = optimize,
+        .@"enable-wasm" = wasm,
     });
 
-    const lib = b.addStaticLibrary(.{
-        .name = "zig-tree-sitter",
+    const lib_mod = b.addModule("tree-sitter", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
     });
-    lib.linkLibrary(core.artifact("tree-sitter"));
+    lib_mod.linkLibrary(core.artifact("tree-sitter"));
+    lib_mod.addOptions("build_options", options);
+
+    const lib = b.addStaticLibrary(.{
+        .name = "zig-tree-sitter",
+        .root_module = lib_mod,
+    });
 
     b.installArtifact(lib);
 
-    const module = b.addModule("tree-sitter", .{
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    module.linkLibrary(lib);
-
-    const docs = b.addObject(.{
-        .name = "tree-sitter",
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = .Debug,
-    });
-
     const install_docs = b.addInstallDirectory(.{
-        .source_dir = docs.getEmittedDocs(),
+        .source_dir = lib.getEmittedDocs(),
         .install_dir = .prefix,
         .install_subdir = "docs",
     });
@@ -43,12 +39,17 @@ pub fn build(b: *std.Build) !void {
     const docs_step = b.step("docs", "Install generated docs");
     docs_step.dependOn(&install_docs.step);
 
-    const tests = b.addTest(.{
+    const test_mod = b.addModule("tests", .{
         .root_source_file = b.path("src/test.zig"),
         .target = target,
         .optimize = optimize,
     });
-    tests.linkLibrary(lib);
+    test_mod.linkLibrary(lib);
+    test_mod.addOptions("build_options", options);
+
+    const tests = b.addTest(.{
+        .root_module = test_mod,
+    });
 
     const run_tests = b.addRunArtifact(tests);
 

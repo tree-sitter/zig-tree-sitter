@@ -347,3 +347,72 @@ test "QueryCursor" {
     try testing.expectEqual(1, match.captures[0].index);
     try testing.expectEqualStrings("(", match.captures[0].node.kind());
 }
+
+test "Load and use Wasm Language" {
+    const build_options = @import("build_options");
+    const wasm_enabled = build_options.wasm_enabled;
+
+    if (wasm_enabled) {
+        const gpa = std.testing.allocator;
+
+        const wasm_bytes = try fetchJavascriptWasm(gpa);
+        defer gpa.free(wasm_bytes);
+
+        const engine = try ts.WasmEngine.new();
+        defer engine.delete();
+
+        var store = try ts.WasmStore.new(engine);
+        defer store.delete();
+
+        const parser = ts.Parser.create();
+        defer parser.destroy();
+
+        parser.setWasmStore(store);
+        defer if (parser.takeWasmStore()) |s| {
+            store = s;
+        };
+
+        const language = try store.loadLanguage("javascript", wasm_bytes);
+        defer language.destroy();
+
+        try parser.setLanguage(language);
+
+        const source_code = "let x = 1;";
+
+        if (parser.parseString(source_code, null)) |tree| {
+            defer tree.destroy();
+
+            const root_node = tree.rootNode();
+
+            const sexp = root_node.toSexp();
+            defer ts.Node.freeSexp(sexp);
+
+            const expected_sexp = "(program (lexical_declaration (variable_declarator name: (identifier) value: (number))))";
+            try std.testing.expectEqualStrings(expected_sexp, sexp);
+        }
+    }
+}
+
+/// Fetches tree-sitter-javascript.wasm from github
+fn fetchJavascriptWasm(gpa: std.mem.Allocator) ![]const u8 {
+    var client = std.http.Client{ .allocator = gpa };
+    defer client.deinit();
+
+    const uri = try std.Uri.parse("https://github.com/tree-sitter/tree-sitter-javascript/releases/download/v0.23.1/tree-sitter-javascript.wasm");
+
+    var response_body = std.ArrayList(u8).init(gpa);
+    errdefer response_body.deinit();
+
+    const respone = try client.fetch(.{
+        .method = .GET,
+        .location = .{ .uri = uri },
+        .response_storage = .{ .dynamic = &response_body },
+    });
+
+    if (respone.status != .ok) {
+        return error.FailedToGetWasm;
+    }
+
+    const body = try response_body.toOwnedSlice();
+    return body;
+}

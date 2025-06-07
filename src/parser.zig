@@ -6,6 +6,7 @@ const Node = @import("node.zig").Node;
 const Point = @import("point.zig").Point;
 const Range = @import("point.zig").Range;
 const Tree = @import("tree.zig").Tree;
+const WasmStore = @import("wasm.zig").WasmStore;
 
 /// A struct that specifies how to read input text.
 pub const Input = extern struct {
@@ -298,6 +299,35 @@ pub const Parser = opaque {
         ts_parser_print_dot_graphs(self, if (file) |f| f.handle else -1);
     }
 
+    /// Assign the given Wasm store to the parser. A parser must have a Wasm store
+    /// in order to use Wasm languages.
+    ///
+    /// Caller is responsible for calling `takeWasmStore` and updating
+    /// store with the returned value before calling `store.delete()`. It will
+    /// lead to a segfault otherwise.
+    ///
+    /// Example:
+    ///
+    /// ```zig
+    /// var store = try ts.WasmStore.new(engine);
+    /// defer store.delete();
+    ///
+    /// parser.setWasmStore(store);
+    /// defer if (parser.takeWasmStore()) |s| {
+    ///     store = s;
+    /// };
+    ///
+    /// ```
+    pub fn setWasmStore(self: *Parser, store: *const WasmStore) void {
+        ts_parser_set_wasm_store(self, store);
+    }
+
+    /// Remove the parser's current Wasm store and return it. This returns null if
+    /// the parser doesn't have a Wasm store.
+    pub fn takeWasmStore(self: *Parser) ?*WasmStore {
+        return ts_parser_take_wasm_store(self);
+    }
+
     /// An object that represents the current state of the parser.
     pub const State = extern struct {
         payload: ?*anyopaque = null,
@@ -319,6 +349,8 @@ extern fn ts_parser_new() *Parser;
 extern fn ts_parser_delete(self: *Parser) void;
 extern fn ts_parser_language(self: *const Parser) ?*const Language;
 extern fn ts_parser_set_language(self: *Parser, language: ?*const Language) bool;
+extern fn ts_parser_take_wasm_store(self: *Parser) ?*WasmStore;
+extern fn ts_parser_set_wasm_store(self: *Parser, store: *const WasmStore) void;
 extern fn ts_parser_set_included_ranges(self: *Parser, ranges: [*c]const Range, count: u32) bool;
 extern fn ts_parser_included_ranges(self: *const Parser, count: *u32) [*c]const Range;
 extern fn ts_parser_parse(self: *Parser, old_tree: ?*const Tree, input: Input) ?*Tree;
