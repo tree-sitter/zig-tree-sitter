@@ -7,11 +7,15 @@ pub const LANGUAGE_VERSION = 15;
 /// The earliest ABI version that is supported by the current version of the library.
 pub const MIN_COMPATIBLE_LANGUAGE_VERSION = 13;
 
+const std = @import("std");
 const language = @import("language.zig");
 const parser = @import("parser.zig");
 const tree = @import("tree.zig");
 
-pub const set_allocator = @import("alloc.zig").ts_set_allocator;
+const alloc = @import("alloc.zig");
+pub const set_allocator = alloc.ts_set_allocator;
+pub const setAllocator = alloc.setAllocator;
+pub const unsetAllocator = alloc.unsetAllocator;
 
 pub const Language = language.Language;
 pub const LanguageMetadata = language.LanguageMetadata;
