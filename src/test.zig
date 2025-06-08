@@ -375,6 +375,9 @@ test "Load and use Wasm Language" {
         const language = try store.loadLanguage("javascript", wasm_bytes);
         defer language.destroy();
 
+        try testing.expectEqual(1, store.languageCount());
+        try testing.expect(language.isWasm());
+
         try parser.setLanguage(language);
 
         const source_code = "let x = 1;";

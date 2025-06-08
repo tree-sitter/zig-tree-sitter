@@ -73,6 +73,11 @@ pub const WasmStore = opaque {
             return error.FailedToLoadLanguage;
         }
     }
+
+    /// Get the number of languages instantiated in the given wasm store.
+    pub fn languageCount(store: *WasmStore) usize {
+        return ts_wasm_store_language_count(store);
+    }
 };
 
 extern fn wasm_engine_new() ?*WasmEngine;
@@ -86,3 +91,4 @@ extern fn ts_wasm_store_load_language(
     wasm_len: u32,
     wasm_error: *WasmError,
 ) ?*Language;
+extern fn ts_wasm_store_language_count(store: *WasmStore) usize;

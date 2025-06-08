@@ -156,6 +156,12 @@ pub const Language = opaque {
     pub fn lookaheadIterator(self: *const Language, state: u16) ?*LookaheadIterator {
         return ts_lookahead_iterator_new(self, state);
     }
+
+    /// Check if the language came from a Wasm module. If so, then in order to use
+    /// this language with a Parser, that parser must have a Wasm store assigned.
+    pub fn isWasm(self: *const Language) bool {
+        return ts_language_is_wasm(self);
+    }
 };
 
 extern fn ts_language_abi_version(self: *const Language) u32;
@@ -164,6 +170,7 @@ extern fn ts_language_delete(self: *const Language) void;
 extern fn ts_language_field_count(self: *const Language) u32;
 extern fn ts_language_field_id_for_name(self: *const Language, name: [*]const u8, name_length: u32) u16;
 extern fn ts_language_field_name_for_id(self: *const Language, id: u16) ?[*:0]const u8;
+extern fn ts_language_is_wasm(self: *const Language) bool;
 extern fn ts_language_metadata(self: *const Language) ?*const LanguageMetadata;
 extern fn ts_language_name(self: *const Language) ?[*:0]const u8;
 extern fn ts_language_next_state(self: *const Language, state: u16, symbol: u16) u16;
