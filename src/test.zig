@@ -173,6 +173,52 @@ test "TreeCursor" {
     try testing.expectEqualStrings("declarator", cursor.fieldName().?);
 }
 
+test "TreeCursor children" {
+    var allocator = std.testing.allocator;
+
+    const language = tree_sitter_c();
+    defer language.destroy();
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(language);
+
+    const tree = parser.parseStringEncoding("for (int x = 0; x < 5; x++) {}", null, .UTF_8).?;
+    defer tree.destroy();
+    const root_node = tree.rootNode();
+    const forloop = root_node.child(0) orelse @panic("expected a for-loop node");
+
+    var cursor = root_node.walk();
+    defer cursor.destroy();
+
+    // forloop node consists of the following: (4 named, 4 unnamed,  8 total)
+    //   [0] "for"
+    //   [1] "("
+    //   [2] declaration type (named as initializer)
+    //   [3] binary_expression (named as condition)
+    //   [4] ";"
+    //   [5] update_expression (named as update)
+    //   [6] ")"
+    //   [7] compound_statement (named as body)
+
+    const children = try forloop.children(&cursor, &allocator);
+    defer children.deinit();
+
+    const named_children = try forloop.namedChildren(&cursor, &allocator);
+    defer named_children.deinit();
+
+    const init_children = try forloop.childrenByFieldName(
+        "initializer",
+        &cursor,
+        &allocator,
+    );
+    defer init_children.deinit();
+
+    try std.testing.expectEqual(8, children.items.len);
+    try std.testing.expectEqual(4, named_children.items.len);
+    try std.testing.expectEqual(1, init_children.items.len);
+}
+
 test "Node" {
     const language = tree_sitter_c();
     defer language.destroy();
