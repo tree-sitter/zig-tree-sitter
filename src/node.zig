@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 const InputEdit = @import("tree.zig").InputEdit;
 const Language = @import("language.zig").Language;
@@ -208,8 +209,8 @@ pub const Node = extern struct {
     /// `TreeCursor` APIs directly instead.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn children(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
-        var result = try std.ArrayList(Node).initCapacity(allocator.*, self.childCount());
+    pub fn children(self: Node, cursor: *TreeCursor, allocator: Allocator) !std.ArrayList(Node) {
+        var result = try std.ArrayList(Node).initCapacity(allocator, self.childCount());
         errdefer result.deinit();
 
         cursor.reset(self);
@@ -228,8 +229,8 @@ pub const Node = extern struct {
     /// See also `Node.children()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
-        var result = try std.ArrayList(Node).initCapacity(allocator.*, self.namedChildCount());
+    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: Allocator) !std.ArrayList(Node) {
+        var result = try std.ArrayList(Node).initCapacity(allocator, self.namedChildCount());
         errdefer result.deinit();
 
         cursor.reset(self);
@@ -253,7 +254,7 @@ pub const Node = extern struct {
     /// See also `Node.children()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: Allocator) !std.ArrayList(Node) {
         const field_id = self.getLanguage().fieldIdForName(field_name);
         return self.childrenByFieldId(field_id, cursor, allocator);
     }
@@ -263,8 +264,8 @@ pub const Node = extern struct {
     /// See also `Node.childrenByFieldName()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldId(self: Node, field_id: u32, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
-        var result = std.ArrayList(Node).init(allocator.*);
+    pub fn childrenByFieldId(self: Node, field_id: u32, cursor: *TreeCursor, allocator: Allocator) !std.ArrayList(Node) {
+        var result = std.ArrayList(Node).init(allocator);
         errdefer result.deinit();
         if (field_id == 0) {
             return result;

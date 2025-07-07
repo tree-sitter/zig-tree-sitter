@@ -174,7 +174,7 @@ test "TreeCursor" {
 }
 
 test "TreeCursor children" {
-    var allocator = std.testing.allocator;
+    const allocator = std.testing.allocator;
 
     const language = tree_sitter_c();
     defer language.destroy();
@@ -201,16 +201,16 @@ test "TreeCursor children" {
     //   [6] ")"
     //   [7] compound_statement (named as body)
 
-    const children = try forloop.children(&cursor, &allocator);
+    const children = try forloop.children(&cursor, allocator);
     defer children.deinit();
 
-    const named_children = try forloop.namedChildren(&cursor, &allocator);
+    const named_children = try forloop.namedChildren(&cursor, allocator);
     defer named_children.deinit();
 
     const init_children = try forloop.childrenByFieldName(
         "initializer",
         &cursor,
-        &allocator,
+        allocator,
     );
     defer init_children.deinit();
 
