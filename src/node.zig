@@ -1,3 +1,5 @@
+const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
 const std = @import("std");
 
 const InputEdit = @import("tree.zig").InputEdit;
@@ -207,14 +209,18 @@ pub const Node = extern struct {
     /// If you're walking the tree recursively, you may want to use the
     /// `TreeCursor` APIs directly instead.
     ///
-    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn children(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+    /// The caller is responsible for freeing the resulting slice.
+    pub fn children(self: Node, allocator: Allocator,
+                    cursor: *TreeCursor) Allocator.Error![]Node {
         cursor.reset(self);
-        cursor.gotoFirstChild();
-        var result = try std.ArrayList(Node).initCapacity(allocator, self.childCount());
-        errdefer result.deinit();
-        while (cursor.gotoNextSibling()) {
-            try result.append(cursor.node());
+        if (!cursor.gotoFirstChild())
+            return &.{};
+        const count = self.childCount();
+        const result = try allocator.alloc(Node, count);
+        errdefer allocator.free(result);
+        for (result, 1..) |*node, i| {
+            node.* = cursor.node();
+            assert((i >= count) != cursor.gotoNextSibling());
         }
         return result;
     }
@@ -223,16 +229,21 @@ pub const Node = extern struct {
     ///
     /// See also `Node.children()`.
     ///
-    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+    /// The caller is responsible for freeing the resulting slice.
+    pub fn namedChildren(self: Node, allocator: Allocator,
+                         cursor: *TreeCursor) Allocator.Error![]Node {
         cursor.reset(self);
-        cursor.gotoFirstChild();
-        var result = try std.ArrayList(Node).initCapacity(allocator, self.namedChildCount());
-        errdefer result.deinit();
-        while (cursor.gotoNextSibling()) {
-            if (cursor.node().isNamed()) {
-                try result.append(cursor.node());
-            }
+        if (!cursor.gotoFirstChild())
+            return &.{};
+        const count = self.namedChildCount();
+        const result = try allocator.alloc(Node, count);
+        errdefer allocator.free(result);
+        for (result, 1..) |*node, i| {
+            while (!cursor.node().isNamed())
+                if (!cursor.gotoNextSibling())
+                    unreachable;
+            node.* = cursor.node();
+            assert(i >= count or cursor.gotoNextSibling());
         }
         return result;
     }
@@ -242,36 +253,37 @@ pub const Node = extern struct {
     /// See also `Node.children()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
-        const field_id = self.language().fieldIdForName(field_name);
-        return self.childrenByFieldId(field_id, cursor, allocator);
+    pub fn childrenByFieldName(self: Node, allocator: Allocator,
+                               cursor: *TreeCursor,
+                               field_name: []const u8) Allocator.Error![]Node {
+        const field_id = self.getLanguage().fieldIdForName(field_name);
+        return self.childrenByFieldId(allocator, cursor, field_id);
     }
 
     /// Iterate over this node's children with a given field id.
     ///
     /// See also `Node.childrenByFieldName()`.
     ///
-    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldId(self: Node, field_id: u16, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
-        if (field_id == 0) {
-            return std.ArrayList(Node).init(allocator);
-        }
-
+    /// The caller is responsible for freeing the resulting slice.
+    pub fn childrenByFieldId(self: Node, allocator: Allocator,
+                             cursor: *TreeCursor,
+                             field_id: u16) Allocator.Error![]Node {
+        if (field_id == 0)
+            return &.{};
         cursor.reset(self);
-        cursor.gotoFirstChild();
-        var result = try std.ArrayList(Node).init(allocator);
-        errdefer result.deinit();
-        while (cursor.fieldId() != field_id) {
-            if (!cursor.gotoNextSibling()) {
-                return result;
-            }
+        if (!cursor.gotoFirstChild())
+            return &.{};
+        var array = std.ArrayListUnmanaged(Node).empty;
+        errdefer array.deinit(allocator);
+        outer: while (true) {
+            while (cursor.fieldId() != field_id)
+                if (!cursor.gotoNextSibling())
+                    break :outer;
+            try array.append(allocator, cursor.node());
+            if (!cursor.gotoNextSibling())
+                break :outer;
         }
-        while (true) {
-            try result.append(cursor.node());
-            if (!cursor.gotoNextSibling()) {
-                return result;
-            }
-        }
+        return array.toOwnedSlice(allocator);
     }
 
     /// Get this node's immediate parent.

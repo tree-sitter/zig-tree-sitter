@@ -184,6 +184,8 @@ test "Node" {
     const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
     defer tree.destroy();
     var node = tree.rootNode();
+    var cursor = node.walk();
+    defer cursor.destroy();
 
     try testing.expectEqual(tree, node.tree);
     try testing.expectEqual(tree.getLanguage(), node.getLanguage());
@@ -237,6 +239,21 @@ test "Node" {
 
     try testing.expectEqualStrings("body", node.fieldNameForChild(2).?);
     try testing.expectEqualStrings("body", node.fieldNameForNamedChild(2).?);
+
+    const children = try node.children(testing.allocator, &cursor);
+    defer testing.allocator.free(children);
+    try testing.expectEqualStrings("primitive_type", children[0].kind());
+    try testing.expectEqualStrings("function_declarator", children[1].kind());
+    try testing.expectEqualStrings("compound_statement", children[2].kind());
+
+    const named_children = try node.namedChildren(testing.allocator, &cursor);
+    defer testing.allocator.free(named_children);
+    try testing.expectEqualDeep(named_children, children);
+
+    const children_by_field_name = try node.childrenByFieldName(testing.allocator, &cursor, "body");
+    defer testing.allocator.free(children_by_field_name);
+    try testing.expectEqual(1, children_by_field_name.len);
+    try testing.expectEqualDeep(children_by_field_name[0], children[2]);
 
     const sexp = node.toSexp();
     defer ts.Node.freeSexp(sexp);
