@@ -377,13 +377,13 @@ pub const Node = extern struct {
     ///
     /// Use `{s}` to get an S-expression.
     pub fn format(self: Node, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        if (std.mem.eql(u8, fmt, "s")) {
+        if (comptime std.mem.eql(u8, fmt, "s")) {
             const sexp = self.toSexp();
             defer freeSexp(sexp);
             return writer.print("{s}", .{sexp});
         }
 
-        if (fmt.len == 0 or std.mem.eql(u8, fmt, "any")) {
+        if (comptime fmt.len == 0 or std.mem.eql(u8, fmt, "any")) {
             return writer.print("Node(id=0x{x}, type={s}, start={d}, end={d})", .{
                 @intFromPtr(self.id),
                 self.kind(),
@@ -392,7 +392,7 @@ pub const Node = extern struct {
             });
         }
 
-        return std.fmt.invalidFmtError(fmt, self);
+        std.fmt.invalidFmtError(fmt, self);
     }
 
     fn orNull(self: Node) ?Node {
