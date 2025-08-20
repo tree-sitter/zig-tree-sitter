@@ -5,13 +5,17 @@ on:
     branches: [master]
     paths:
       - build.zig
+      - build.zig.zon
       - src/*
-      - .github/workflows/*
+      - .github/workflows/ci.yml
+      - .github/workflows/docs.yml
   pull_request:
     paths:
       - build.zig
+      - build.zig.zon
       - src/*
-      - .github/workflows/*
+      - .github/workflows/ci.yml
+      - .github/workflows/docs.yml
 
 concurrency:
   cancel-in-progress: true
@@ -30,30 +34,36 @@ jobs:
           - aarch64-linux-gnu
           - x86_64-windows-gnu
           - x86_64-windows-msvc
+          - aarch64-windows-gnu
           - aarch64-macos-none
+          - x86_64-macos-none
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-linux-gnu
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-linux-musl
           - os: ubuntu-24.04-arm
             target: aarch64-linux-gnu
-          - os: windows-latest
+          - os: windows-2022
             target: x86_64-windows-gnu
-          - os: windows-latest
+          - os: windows-2022
             target: x86_64-windows-msvc
-          - os: macos-latest
+          - os: windows-11-arm
+            target: aarch64-windows-gnu
+          - os: macos-15
             target: aarch64-macos-none
-          - os: macos-latest
+          - os: macos-13
             target: x86_64-macos-none
-            flags: -frosetta
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
-        if: matrix.target == 'x86_64-windows-msvc'
+        if: contains(matrix.target, 'msvc')
+      - name: Install musl
+        if: matrix.target == 'x86_64-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl
       - name: Run unit tests
-        run: zig build test -Dtarget=${{matrix.target}} ${{matrix.flags}} --verbose
+        run: zig build test -Dtarget=${{matrix.target}} --verbose
