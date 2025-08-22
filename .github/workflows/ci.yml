@@ -24,7 +24,7 @@ concurrency:
 jobs:
   test:
     runs-on: ${{matrix.os}}
-    name: Test target ${{matrix.target}}
+    name: Test target ${{matrix.target}} (enable-wasm=${{matrix.wasm}})
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +37,9 @@ jobs:
           - aarch64-windows-gnu
           - aarch64-macos-none
           - x86_64-macos-none
+        wasm:
+          - "true"
+          - "false"
         include:
           - os: ubuntu-24.04
             target: x86_64-linux-gnu
@@ -54,6 +57,13 @@ jobs:
             target: aarch64-macos-none
           - os: macos-13
             target: x86_64-macos-none
+        exclude:
+          # doesn't build
+          - target: x86_64-windows-msvc
+            wasm: "true"
+          # no wasmtime archive
+          - target: aarch64-windows-gnu
+            wasm: "true"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -66,4 +76,7 @@ jobs:
         if: matrix.target == 'x86_64-linux-musl'
         run: sudo apt-get update && sudo apt-get install -y musl
       - name: Run unit tests
-        run: zig build test -Dtarget=${{matrix.target}} --verbose
+        shell: sh
+        run: zig build test $ZIG_FLAGS --verbose
+        env:
+          ZIG_FLAGS: -Dtarget=${{matrix.target}} -Denable-wasm=${{matrix.wasm}}

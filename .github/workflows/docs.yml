@@ -30,7 +30,7 @@ jobs:
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
       - name: Generate documentation
-        run: zig build docs --verbose
+        run: zig build docs -Denable-wasm=true --verbose
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
