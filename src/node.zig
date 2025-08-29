@@ -376,25 +376,16 @@ pub const Node = extern struct {
     }
 
     /// Format the node as a string.
-    ///
-    /// Use `{s}` to get an S-expression.
-    pub fn format(self: Node, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        if (comptime std.mem.eql(u8, fmt, "s")) {
-            const string = ts_node_string(self);
-            defer alloc.free_fn(@ptrCast(@constCast(string)));
-            return writer.print("{s}", .{std.mem.span(string)});
-        }
-
-        if (comptime fmt.len == 0 or std.mem.eql(u8, fmt, "any")) {
-            return writer.print("Node(id=0x{x}, type={s}, start={d}, end={d})", .{
+    pub fn format(self: Node, writer: *std.Io.Writer) !void {
+        try writer.print(
+            "Node(id=0x{x}, type={s}, start={d}, end={d})",
+            .{
                 @intFromPtr(self.id),
-                self.kind(),
+                self.type(),
                 self.startByte(),
                 self.endByte(),
-            });
-        }
-
-        std.fmt.invalidFmtError(fmt, self);
+            },
+        );
     }
 
     fn orNull(self: Node) ?Node {

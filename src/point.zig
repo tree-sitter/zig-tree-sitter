@@ -1,4 +1,5 @@
 const std = @import("std");
+const Writer = std.Io.Writer;
 
 /// A position in a text document in terms of rows and columns.
 pub const Point = extern struct {
@@ -17,6 +18,11 @@ pub const Point = extern struct {
         if (col_diff == 0) return .eq;
         return if (col_diff > 0) .gt else .lt;
     }
+
+    /// Format the point as a string.
+    pub fn format(self: Point, writer: *Writer) !void {
+        try writer.print("({d}, {d})", .{ self.row, self.column });
+    }
 };
 
 /// A range of positions in a text document,
@@ -26,4 +32,12 @@ pub const Range = extern struct {
     end_point: Point = .{ .row = 0xFFFFFFFF, .column = 0xFFFFFFFF },
     start_byte: u32 = 0,
     end_byte: u32 = 0xFFFFFFFF,
+
+    /// Format the range as a string.
+    pub fn format(self: Range, writer: *Writer) !void {
+        try writer.print(
+            "Range(start_point={f}, end_point={f}, start_byte={d}, end_byte={d})",
+            .{ self.start_point, self.end_point, self.start_byte, self.end_byte },
+        );
+    }
 };

@@ -166,6 +166,14 @@ pub const Language = opaque {
     pub fn lookaheadIterator(self: *const Language, state: u16) ?*LookaheadIterator {
         return ts_lookahead_iterator_new(self, state);
     }
+
+    /// Format the language as a string.
+    pub fn format(self: Language, writer: *std.Io.Writer) !void {
+        return try writer.print(
+            "Language(id=0x{*}, version={d}, name={?s})",
+            .{ self, self.abi_version(), self.name() },
+        );
+    }
 };
 
 extern fn ts_language_abi_version(self: *const Language) u32;
