@@ -39,7 +39,7 @@ pub const Input = extern struct {
     /// An indication of how the text is encoded.
     encoding: Input.Encoding = .UTF_8,
 
-    // This function reads one code point from the given string, returning
+    /// This function reads one code point from the given string, returning
     /// the number of bytes consumed. It should write the code point to
     /// the `code_point` pointer, or write `-1` if the input is invalid.
     decode: ?*const fn (
@@ -275,10 +275,15 @@ pub const Parser = opaque {
     /// Example:
     ///
     /// ```zig
-    /// parser.printDotGraphs(std.io.getStdOut());
+    /// parser.printDotGraphs(std.fs.File.stdout());
     /// ```
     pub fn printDotGraphs(self: *Parser, file: ?std.fs.File) void {
         ts_parser_print_dot_graphs(self, if (file) |f| f.handle else -1);
+    }
+
+    /// Format the parser as a string.
+    pub fn format(self: Parser, writer: *std.Io.Writer) !void {
+        try writer.print("Parser(language={?f})", .{self.getLanguage()});
     }
 
     /// An object that represents the current state of the parser.
