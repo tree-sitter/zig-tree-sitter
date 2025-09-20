@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
       - name: Create app token
         uses: actions/create-github-app-token@v1
         id: app-token
