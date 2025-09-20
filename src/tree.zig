@@ -104,7 +104,7 @@ pub const Tree = opaque {
     }
 };
 
-extern var ts_current_free: *const fn ([*]u8) callconv(.C) void;
+extern var ts_current_free: *const fn ([*]u8) callconv(.c) void;
 extern fn ts_node_is_null(self: Node) bool;
 extern fn ts_tree_copy(self: *const Tree) *Tree;
 extern fn ts_tree_delete(self: *Tree) void;

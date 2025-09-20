@@ -9,12 +9,16 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    const lib = b.addStaticLibrary(.{
-        .name = "zig-tree-sitter",
+    const lib_module = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+    });
+
+    const lib = b.addLibrary(.{
+        .name = "zig-tree-sitter",
+        .root_module = lib_module,
     });
     lib.linkLibrary(core.artifact("tree-sitter"));
 
@@ -29,9 +33,7 @@ pub fn build(b: *std.Build) !void {
 
     const docs = b.addObject(.{
         .name = "tree-sitter",
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = .Debug,
+        .root_module = module,
     });
 
     const install_docs = b.addInstallDirectory(.{
@@ -43,14 +45,20 @@ pub fn build(b: *std.Build) !void {
     const docs_step = b.step("docs", "Install generated docs");
     docs_step.dependOn(&install_docs.step);
 
-    const tests = b.addTest(.{
+    const test_module = b.createModule(.{
         .root_source_file = b.path("src/test.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
+    });
+
+    const tests = b.addTest(.{
+        .root_module = test_module,
     });
     tests.linkLibrary(lib);
 
     const run_tests = b.addRunArtifact(tests);
+    run_tests.skip_foreign_checks = true;
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
@@ -60,18 +68,13 @@ pub fn build(b: *std.Build) !void {
     defer args.deinit();
     while (args.next()) |a| {
         if (std.mem.eql(u8, a, "test")) {
-            if (b.lazyDependency("tree-sitter-c", .{})) |dep| {
-                const dep_lib = dep.builder.addStaticLibrary(.{
-                    .name = "tree-sitter-c",
-                    .target = target,
-                    .optimize = optimize,
-                    .link_libc = true,
-                });
-                dep_lib.addIncludePath(dep.path("src"));
-                dep_lib.addCSourceFile(.{
-                    .file = dep.path("src/parser.c"),
-                });
-                tests.linkLibrary(dep_lib);
+            if (b.lazyDependency("tree-sitter-c", .{
+                .target = target,
+                .optimize = optimize,
+            })) |dep| {
+                const depmod = dep.module("tree-sitter-c");
+                depmod.addImport("tree-sitter", module);
+                test_module.addImport("tree-sitter-c", depmod);
             }
             break;
         }

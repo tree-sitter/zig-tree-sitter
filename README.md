@@ -53,7 +53,7 @@ pub fn build(b: *std.Build) void {
 const std = @import("std");
 const ts = @import("tree-sitter");
 
-extern fn tree_sitter_zig() callconv(.C) *ts.Language;
+extern fn tree_sitter_zig() callconv(.c) *ts.Language;
 
 pub fn main() !void {
     // Create a parser for the zig language

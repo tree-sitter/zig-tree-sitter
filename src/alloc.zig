@@ -13,8 +13,8 @@
 ///  2. The new allocator shares its state with the old one, so it is capable
 ///     of freeing memory that was allocated by the old allocator.
 pub extern fn ts_set_allocator(
-    new_malloc: ?*const fn (size: usize) callconv(.C) ?*anyopaque,
-    new_calloc: ?*const fn (nmemb: usize, size: usize) callconv(.C) ?*anyopaque,
-    new_realloc: ?*const fn (ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque,
-    new_free: ?*const fn (ptr: ?*anyopaque) callconv(.C) void,
+    new_malloc: ?*const fn (size: usize) callconv(.c) ?*anyopaque,
+    new_calloc: ?*const fn (nmemb: usize, size: usize) callconv(.c) ?*anyopaque,
+    new_realloc: ?*const fn (ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque,
+    new_free: ?*const fn (ptr: ?*anyopaque) callconv(.c) void,
 ) void;
