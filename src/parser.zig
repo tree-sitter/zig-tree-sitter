@@ -119,40 +119,6 @@ pub const Parser = opaque {
         return ts_parser_set_logger(self, logger);
     }
 
-    /// Get the maximum duration in microseconds that parsing
-    /// should be allowed to take before halting.
-    ///
-    /// Deprecated: Use `Parser.parseInput()` with options instead.
-    pub fn getTimeoutMicros(self: *const Parser) u64 {
-        return ts_parser_timeout_micros(self);
-    }
-
-    /// Set the maximum duration in microseconds that parsing
-    /// should be allowed to take before halting.
-    ///
-    /// Deprecated. Use `Parser.parseInput()` with options instead.
-    pub fn setTimeoutMicros(self: *Parser, timeout: u64) void {
-        return ts_parser_set_timeout_micros(self, timeout);
-    }
-
-    /// Get the parser's current cancellation flag pointer.
-    ///
-    /// Deprecated. Use `Parser.parseInput()` with options instead.
-    pub fn getCancellationFlag(self: *const Parser) ?*const usize {
-        return ts_parser_cancellation_flag(self);
-    }
-
-    /// Set the parser's cancellation flag pointer.
-    ///
-    /// If a non-null pointer is assigned, then the parser will
-    /// periodically read from this pointer during parsing.
-    /// If it reads a non-zero value, it will halt early.
-    ///
-    /// Deprecated. Use `Parser.parseInput()` with options instead.
-    pub fn setCancellationFlag(self: *const Parser, flag: ?*const usize) void {
-        return ts_parser_set_cancellation_flag(self, flag);
-    }
-
     /// Get the ranges of text that the parser will include when parsing.
     pub fn getIncludedRanges(self: *const Parser) []const Range {
         var count: u32 = 0;
