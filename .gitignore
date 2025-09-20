@@ -22,3 +22,6 @@ Session.vim
 .nvimrc
 tags
 *~
+
+### Nix ###
+.direnv
