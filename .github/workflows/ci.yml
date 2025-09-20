@@ -36,9 +36,8 @@ jobs:
             target: x86_64-linux-gnu
           - os: ubuntu-latest
             target: x86_64-linux-musl
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             target: aarch64-linux-gnu
-            flags: -fqemu -Ddynamic-linker=/usr/aarch64-linux-gnu/lib/ld-linux-aarch64.so.1
           - os: windows-latest
             target: x86_64-windows-gnu
           - os: windows-latest
@@ -56,16 +55,5 @@ jobs:
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
         if: matrix.target == 'x86_64-windows-msvc'
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        if: matrix.target == 'aarch64-linux-gnu'
-        with:
-          platforms: arm64
-      - name: Install packages
-        if: matrix.target == 'aarch64-linux-gnu'
-        run: |-
-          sudo apt-get update
-          sudo apt-get install -y libc6-dev-arm64-cross
-          printf 'LD_LIBRARY_PATH=/usr/aarch64-linux-gnu/lib\n' >> "$GITHUB_ENV"
       - name: Run unit tests
         run: zig build test -Dtarget=${{matrix.target}} ${{matrix.flags}} --verbose
