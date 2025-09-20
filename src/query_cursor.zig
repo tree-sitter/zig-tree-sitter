@@ -75,22 +75,6 @@ pub const QueryCursor = opaque {
         ts_query_cursor_set_match_limit(self, limit);
     }
 
-    /// Get the maximum duration in microseconds that query
-    /// execution should be allowed to take before halting.
-    ///
-    /// Deprecated: Use `QueryCursor.execWithOptions()` with options instead.
-    pub fn getTimeoutMicros(self: *const QueryCursor) u64 {
-        return ts_query_cursor_timeout_micros(self);
-    }
-
-    /// Set the maximum duration in microseconds that query
-    /// execution should be allowed to take before halting.
-    ///
-    /// Deprecated: Use `QueryCursor.execWithOptions()` with options instead.
-    pub fn setTimeoutMicros(self: *QueryCursor, timeout_micros: u64) void {
-        ts_query_cursor_set_timeout_micros(self, timeout_micros);
-    }
-
     /// Set the range of bytes in which the query will be executed.
     ///
     /// The query cursor will return matches that intersect with the
