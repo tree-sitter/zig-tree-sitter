@@ -32,7 +32,7 @@ pub const Input = extern struct {
         byte_index: u32,
         position: Point,
         bytes_read: *u32,
-    ) callconv(.C) [*c]const u8,
+    ) callconv(.c) [*c]const u8,
 
     /// An indication of how the text is encoded.
     encoding: Input.Encoding = .UTF_8,
@@ -44,7 +44,7 @@ pub const Input = extern struct {
         string: [*c]const u8,
         length: u32,
         code_point: *i32,
-    ) callconv(.C) u32 = null,
+    ) callconv(.c) u32 = null,
 };
 
 /// A wrapper around a function that logs parsing results.
@@ -63,7 +63,7 @@ pub const Logger = extern struct {
         payload: ?*anyopaque,
         log_type: LogType,
         buffer: [*:0]const u8,
-    ) callconv(.C) void = null,
+    ) callconv(.c) void = null,
 };
 
 /// A stateful object that is used to produce
@@ -105,7 +105,7 @@ pub const Parser = opaque {
     /// Example:
     ///
     /// ```zig
-    /// fn scopedLogger(_: ?*anyopaque, log_type: LogType, buffer: [*:0]const u8) callconv(.C) void {
+    /// fn scopedLogger(_: ?*anyopaque, log_type: LogType, buffer: [*:0]const u8) callconv(.c) void {
     ///     const scope = switch (log_type) {
     ///         .Parse => std.log.scoped(.PARSE),
     ///         .Lex => std.log.scoped(.LEX),
@@ -311,7 +311,7 @@ pub const Parser = opaque {
     pub const Options = extern struct {
         payload: ?*anyopaque = null,
         /// A callback that receives the parse state during parsing.
-        progress_callback: *const fn (state: State) callconv(.C) bool,
+        progress_callback: *const fn (state: State) callconv(.c) bool,
     };
 };
 

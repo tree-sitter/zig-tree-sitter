@@ -400,7 +400,7 @@ pub const Node = extern struct {
     }
 };
 
-extern var ts_current_free: *const fn ([*]u8) callconv(.C) void;
+extern var ts_current_free: *const fn ([*]u8) callconv(.c) void;
 extern fn ts_node_child(self: Node, child_index: u32) Node;
 extern fn ts_node_child_by_field_id(self: Node, field_id: u16) Node;
 extern fn ts_node_child_by_field_name(self: Node, name: [*]const u8, name_length: u32) Node;

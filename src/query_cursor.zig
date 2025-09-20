@@ -163,7 +163,7 @@ pub const QueryCursor = opaque {
     pub const Options = extern struct {
         payload: ?*anyopaque = null,
         /// A callback that receives the query state during execution.
-        progress_callback: *const fn (state: State) callconv(.C) bool,
+        progress_callback: *const fn (state: State) callconv(.c) bool,
     };
 };
 

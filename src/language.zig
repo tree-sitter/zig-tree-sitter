@@ -22,10 +22,15 @@ pub const LanguageMetadata = extern struct {
     patch_version: u8,
 };
 
-const LanguageFn = *const fn () callconv(.C) *const Language;
+const LanguageFn = *const fn () callconv(.c) *const Language;
 
 /// An opaque object that defines how to parse a particular language.
 pub const Language = opaque {
+    /// Cast a raw pointer to a Language pointer.
+    pub fn fromRaw(ptr: *const anyopaque) *const Language {
+        return @ptrCast(ptr);
+    }
+
     /// Free any dynamically-allocated resources for this language, if this is the last reference.
     pub fn destroy(self: *const Language) void {
         ts_language_delete(self);

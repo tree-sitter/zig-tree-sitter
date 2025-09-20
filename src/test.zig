@@ -1,15 +1,20 @@
 const std = @import("std");
 const testing = std.testing;
 const ts = @import("root.zig");
+const c = @import("tree-sitter-c");
+const Language = ts.Language;
 
-extern fn tree_sitter_c() *const ts.Language;
+extern fn tree_sitter_c() callconv(.c) *const ts.Language;
 
 test "Language" {
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
-    try testing.expectEqual(14, language.abiVersion());
-    try testing.expectEqual(null, language.metadata());
+    try testing.expectEqual(15, language.version());
+    try testing.expectEqual(
+        ts.LanguageMetadata{ .major_version = 0, .minor_version = 24, .patch_version = 1 },
+        language.metadata().?.*,
+    );
     try testing.expect(language.nodeKindCount() > 1);
     try testing.expect(language.fieldCount() > 1);
     try testing.expect(language.parseStateCount() > 1);
@@ -28,7 +33,7 @@ test "Language" {
 }
 
 test "LookaheadIterator" {
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
     const state = language.nextState(1, 161);
@@ -51,16 +56,16 @@ test "LookaheadIterator" {
     try testing.expect(lookahead.resetState(state));
 
     try testing.expect(lookahead.next());
-    try testing.expect(lookahead.reset(language, state));
+    try testing.expect(lookahead.reset(@ptrCast(language), state));
 }
 
 test "Parser" {
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
     const parser = ts.Parser.create();
     defer parser.destroy();
-    try parser.setLanguage(language);
+    try parser.setLanguage(@ptrCast(language));
 
     try testing.expectEqual(language, parser.getLanguage());
     try testing.expectEqual(null, parser.getLogger().log);
@@ -79,7 +84,7 @@ test "Tree" {
 
     const parser = ts.Parser.create();
     defer parser.destroy();
-    try parser.setLanguage(language);
+    try parser.setLanguage(@ptrCast(language));
 
     const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
     defer tree.destroy();
@@ -121,14 +126,14 @@ test "Tree" {
     try testing.expectEqualSlices(ts.Range, &.{range}, ranges);
     ts.Tree.freeRanges(ranges);
 }
-
+//
 test "TreeCursor" {
     const language = tree_sitter_c();
     defer language.destroy();
 
     const parser = ts.Parser.create();
     defer parser.destroy();
-    try parser.setLanguage(language);
+    try parser.setLanguage(@ptrCast(language));
 
     const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
     defer tree.destroy();
@@ -179,7 +184,7 @@ test "Node" {
 
     const parser = ts.Parser.create();
     defer parser.destroy();
-    try parser.setLanguage(language);
+    try parser.setLanguage(@ptrCast(language));
 
     const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
     defer tree.destroy();
@@ -265,7 +270,7 @@ test "Query" {
     defer language.destroy();
 
     var error_offset: u32 = 0;
-    try testing.expectError(error.InvalidNodeType, ts.Query.create(language, "(foo) @foo", &error_offset));
+    try testing.expectError(error.InvalidNodeType, ts.Query.create(@ptrCast(language), "(foo) @foo", &error_offset));
     try testing.expectEqual(1, error_offset);
 
     const source =
@@ -274,7 +279,7 @@ test "Query" {
         \\((identifier) @main
         \\ (#eq? @main "main"))
     ;
-    var query = try ts.Query.create(language, source, &error_offset);
+    var query = try ts.Query.create(@ptrCast(language), source, &error_offset);
     defer query.destroy();
 
     try testing.expectEqual(3, query.patternCount());
@@ -312,12 +317,12 @@ test "QueryCursor" {
         \\ (#eq? @main "main"))
     ;
     var error_offset: u32 = 0;
-    var query = try ts.Query.create(language, source, &error_offset);
+    var query = try ts.Query.create(@ptrCast(language), source, &error_offset);
     defer query.destroy();
 
     const parser = ts.Parser.create();
     defer parser.destroy();
-    try parser.setLanguage(language);
+    try parser.setLanguage(@ptrCast(language));
 
     const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
     defer tree.destroy();
