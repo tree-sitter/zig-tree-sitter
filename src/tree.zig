@@ -78,7 +78,7 @@ pub const Tree = opaque {
     pub fn getChangedRanges(self: *const Tree, allocator: std.mem.Allocator, new_tree: *const Tree) ![]Range {
         var length: u32 = 0;
         const ranges = ts_tree_get_changed_ranges(self, new_tree, &length);
-        defer alloc.free_fn(@ptrCast(@constCast(ranges)));
+        defer alloc.free_fn()(@ptrCast(@constCast(ranges)));
         const result = try allocator.alloc(Range, length);
         if (length > 0) @memcpy(result, ranges[0..length]);
         return result;
@@ -90,7 +90,7 @@ pub const Tree = opaque {
     pub fn getIncludedRanges(self: *const Tree, allocator: std.mem.Allocator) ![]Range {
         var length: u32 = 0;
         const ranges = ts_tree_included_ranges(self, &length);
-        defer alloc.free_fn(@ptrCast(@constCast(ranges)));
+        defer alloc.free_fn()(@ptrCast(@constCast(ranges)));
         const result = try allocator.alloc(Range, length);
         if (length > 0) @memcpy(result, ranges[0..length]);
         return result;
