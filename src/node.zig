@@ -352,7 +352,7 @@ pub const Node = extern struct {
     /// The caller owns the memory.
     pub fn toSexp(self: Node, allocator: std.mem.Allocator) ![]u8 {
         const string = ts_node_string(self);
-        defer alloc.free_fn(@ptrCast(@constCast(string)));
+        defer alloc.free_fn()(@ptrCast(@constCast(string)));
         return try allocator.dupe(u8, std.mem.span(string));
     }
 

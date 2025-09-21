@@ -6,7 +6,14 @@ var alloc_registry: ?std.AutoHashMap(usize, usize) = null;
 
 var alloc_mutex: std.Thread.Mutex = .{};
 
-pub var free_fn: *const fn (?*anyopaque) callconv(.c) void = std.c.free;
+var _free_fn: ?*const fn (?*anyopaque) callconv(.c) void = null;
+
+pub fn free_fn() *const fn (?*anyopaque) callconv(.c) void {
+    if (_free_fn == null) {
+        _free_fn = std.c.free;
+    }
+    return _free_fn.?;
+}
 
 /// Set the allocator used by the library.
 ///
@@ -26,7 +33,7 @@ pub fn setAllocator(allocator: ?std.mem.Allocator) void {
     if (allocator) |alloc| {
         ts_allocator = alloc;
         alloc_registry = .init(ts_allocator.?);
-        free_fn = free;
+        _free_fn = free;
         ts_set_allocator(malloc, calloc, realloc, free);
     } else {
         ts_allocator = null;
@@ -34,7 +41,7 @@ pub fn setAllocator(allocator: ?std.mem.Allocator) void {
             alloc_registry.?.deinit();
             alloc_registry = null;
         }
-        free_fn = std.c.free;
+        _free_fn = std.c.free;
         ts_set_allocator(null, null, null, null);
     }
 }
