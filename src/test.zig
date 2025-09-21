@@ -109,7 +109,7 @@ test "Tree" {
         .old_end_point = .{ .row = 0, .column = 13 },
         .new_end_point = .{ .row = 0, .column = 9 },
     });
-    const new_tree = parser.parseStringEncoding("main() {}", old_tree, .UTF_8).?;
+    const new_tree = parser.parseStringEncoding("main() {}", old_tree, .utf8).?;
     defer new_tree.destroy();
     range = .{
         .start_point = .{ .row = 0, .column = 0 },
@@ -130,7 +130,7 @@ test "TreeCursor" {
     defer parser.destroy();
     try parser.setLanguage(@ptrCast(language));
 
-    const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
+    const tree = parser.parseStringEncoding("int main() {}", null, .utf8).?;
     defer tree.destroy();
     const root_node = tree.rootNode();
 
@@ -184,7 +184,7 @@ test "Node" {
     defer parser.destroy();
     try parser.setLanguage(@ptrCast(language));
 
-    const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
+    const tree = parser.parseStringEncoding("int main() {}", null, .utf8).?;
     defer tree.destroy();
     var node = tree.rootNode();
 
@@ -292,14 +292,14 @@ test "Query" {
     try testing.expect(!query.isPatternGuaranteedAtStep(9));
 
     try testing.expectEqualStrings("punctuation", query.captureNameForId(1).?);
-    try testing.expectEqual(.One, query.captureQuantifierForId(0, 0).?);
+    try testing.expectEqual(.one, query.captureQuantifierForId(0, 0).?);
     try testing.expectEqualStrings("main", query.stringValueForId(1).?);
 
     const steps: [4]ts.Query.PredicateStep = .{
-        .{ .type = .String, .value_id = 0 },
-        .{ .type = .Capture, .value_id = 2 },
-        .{ .type = .String, .value_id = 1 },
-        .{ .type = .Done, .value_id = 0 },
+        .{ .type = .string, .value_id = 0 },
+        .{ .type = .capture, .value_id = 2 },
+        .{ .type = .string, .value_id = 1 },
+        .{ .type = .done, .value_id = 0 },
     };
     try testing.expectEqualSlices(ts.Query.PredicateStep, &steps, query.predicatesForPattern(2));
 }
@@ -322,7 +322,7 @@ test "QueryCursor" {
     defer parser.destroy();
     try parser.setLanguage(@ptrCast(language));
 
-    const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
+    const tree = parser.parseStringEncoding("int main() {}", null, .utf8).?;
     defer tree.destroy();
 
     const cursor = ts.QueryCursor.create();

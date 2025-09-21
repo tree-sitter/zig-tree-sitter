@@ -13,10 +13,10 @@ const WasmStore = @import("wasm.zig").WasmStore;
 pub const Input = extern struct {
     /// The encoding of source code.
     pub const Encoding = enum(c_uint) {
-        UTF_8,
-        UTF_16LE,
-        UTF_16BE,
-        Custom,
+        utf8,
+        utf16le,
+        utf16be,
+        custom,
     };
 
     /// An arbitrary pointer that will be passed
@@ -37,7 +37,7 @@ pub const Input = extern struct {
     ) callconv(.c) [*c]const u8,
 
     /// An indication of how the text is encoded.
-    encoding: Input.Encoding = .UTF_8,
+    encoding: Input.Encoding = .utf8,
 
     /// This function reads one code point from the given string, returning
     /// the number of bytes consumed. It should write the code point to
@@ -53,8 +53,8 @@ pub const Input = extern struct {
 pub const Logger = extern struct {
     /// The type of a log message.
     pub const LogType = enum(c_uint) {
-        Parse,
-        Lex,
+        parse,
+        lex,
     };
 
     /// The payload of the function.
@@ -110,8 +110,8 @@ pub const Parser = opaque {
     /// ```zig
     /// fn scopedLogger(_: ?*anyopaque, log_type: LogType, buffer: [*:0]const u8) callconv(.c) void {
     ///     const scope = switch (log_type) {
-    ///         .Parse => std.log.scoped(.PARSE),
-    ///         .Lex => std.log.scoped(.LEX),
+    ///         .parse => std.log.scoped(.PARSE),
+    ///         .lex => std.log.scoped(.LEX),
     ///     };
     ///     scope.debug("{s}", .{ std.mem.span(buffer) });
     /// }
@@ -216,7 +216,7 @@ pub const Parser = opaque {
             old_tree,
             string.ptr,
             @intCast(string.len),
-            Input.Encoding.UTF_8,
+            .utf8,
         );
     }
 
@@ -237,7 +237,7 @@ pub const Parser = opaque {
             old_tree,
             string.ptr,
             @intCast(string.len),
-            encoding orelse .UTF_8,
+            encoding orelse .utf8,
         );
     }
 
