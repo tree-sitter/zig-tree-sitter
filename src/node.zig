@@ -345,14 +345,11 @@ pub const Node = extern struct {
 
     /// Get an S-expression representing the node.
     ///
-    /// The caller is responsible for freeing it using `freeSexp`.
-    pub fn toSexp(self: Node) [:0]const u8 {
-        return std.mem.span(ts_node_string(self));
-    }
-
-    /// Free an S-expression allocated with `toSexp()`.
-    pub fn freeSexp(sexp: [:0]const u8) void {
-        alloc.free_fn(@ptrCast(@constCast(sexp)));
+    /// The caller owns the memory.
+    pub fn toSexp(self: Node, allocator: std.mem.Allocator) ![]u8 {
+        const string = ts_node_string(self);
+        defer alloc.free_fn(@ptrCast(@constCast(string)));
+        return try allocator.dupe(u8, std.mem.span(string));
     }
 
     /// Create a new `TreeCursor` starting from this node.
@@ -379,9 +376,9 @@ pub const Node = extern struct {
     /// Use `{s}` to get an S-expression.
     pub fn format(self: Node, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
         if (comptime std.mem.eql(u8, fmt, "s")) {
-            const sexp = self.toSexp();
-            defer freeSexp(sexp);
-            return writer.print("{s}", .{sexp});
+            const string = ts_node_string(self);
+            defer alloc.free_fn(@ptrCast(@constCast(string)));
+            return writer.print("{s}", .{std.mem.span(string)});
         }
 
         if (comptime fmt.len == 0 or std.mem.eql(u8, fmt, "any")) {
