@@ -53,7 +53,7 @@ pub const WasmStore = opaque {
 
         const message: []const u8 = std.mem.span(wasm_error.message);
         error_message.* = allocator.dupe(u8, message) catch return error.AllocateError;
-        alloc.free_fn(@ptrCast(@constCast(wasm_error.message)));
+        alloc.free_fn()(@ptrCast(@constCast(wasm_error.message)));
         return switch (wasm_error.kind) {
             .parse => error.ParseError,
             .compile => error.CompileError,
@@ -91,7 +91,7 @@ pub const WasmStore = opaque {
 
         const message: []const u8 = std.mem.span(wasm_error.message);
         error_message.* = allocator.dupe(u8, message) catch return error.AllocateError;
-        alloc.free_fn(@ptrCast(@constCast(wasm_error.message)));
+        alloc.free_fn()(@ptrCast(@constCast(wasm_error.message)));
         return switch (wasm_error.kind) {
             .parse => error.ParseError,
             .compile => error.CompileError,
