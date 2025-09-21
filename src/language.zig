@@ -4,10 +4,10 @@ const LookaheadIterator = @import("lookahead_iterator.zig").LookaheadIterator;
 
 /// The type of a grammar symbol.
 const SymbolType = enum(c_uint) {
-    Regular,
-    Anonymous,
-    Supertype,
-    Auxiliary,
+    regular,
+    anonymous,
+    supertype,
+    auxiliary,
 };
 
 /// The metadata associated with a language.
@@ -106,19 +106,18 @@ pub const Language = opaque {
 
     /// Check if the node type for the given numerical id is named (as opposed to an anonymous node type).
     pub fn nodeKindIsNamed(self: *const Language, symbol: u16) bool {
-        const symbol_type = ts_language_symbol_type(self, symbol);
-        return @intFromEnum(symbol_type) <= @intFromEnum(SymbolType.Regular);
+        return ts_language_symbol_type(self, symbol) == .regular;
     }
 
     /// Check if the node type for the given numerical id is visible (as opposed to a hidden node type).
     pub fn nodeKindIsVisible(self: *const Language, symbol: u16) bool {
         const symbol_type = ts_language_symbol_type(self, symbol);
-        return @intFromEnum(symbol_type) <= @intFromEnum(SymbolType.Anonymous);
+        return @intFromEnum(symbol_type) <= @intFromEnum(SymbolType.anonymous);
     }
 
     /// Check if the node for the given numerical ID is a supertype.
     pub fn nodeKindIsSupertype(self: *const Language, symbol: u16) bool {
-        return ts_language_symbol_type(self, symbol) == SymbolType.Supertype;
+        return ts_language_symbol_type(self, symbol) == .supertype;
     }
 
     /// Get the number of distinct field names in this language.

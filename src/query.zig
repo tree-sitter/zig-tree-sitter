@@ -2,13 +2,13 @@ const Language = @import("language.zig").Language;
 const Node = @import("node.zig").Node;
 
 const QueryError = enum(c_uint) {
-    None,
-    Syntax,
-    NodeType,
-    Field,
-    Capture,
-    Structure,
-    Language,
+    none,
+    syntax,
+    node_type,
+    field,
+    capture,
+    structure,
+    language,
 };
 
 // TODO: implement matches, captures & predicates
@@ -33,15 +33,15 @@ pub const Query = opaque {
     ///     catch |err| std.debug.panic("{s} error at position {d}", . { @errorName(err), error_offset });
     /// ```
     pub fn create(language: *const Language, source: []const u8, error_offset: *u32) Error!*Query {
-        var error_type: QueryError = .None;
+        var error_type: QueryError = .none;
         const query = ts_query_new(language, source.ptr, @intCast(source.len), error_offset, &error_type);
         return query orelse switch (error_type) {
-            .Syntax => error.InvalidSyntax,
-            .NodeType => error.InvalidNodeType,
-            .Field => error.InvalidField,
-            .Capture => error.InvalidCapture,
-            .Structure => error.InvalidStructure,
-            .Language => error.InvalidLanguage,
+            .syntax => error.InvalidSyntax,
+            .node_type => error.InvalidNodeType,
+            .field => error.InvalidField,
+            .capture => error.InvalidCapture,
+            .structure => error.InvalidStructure,
+            .language => error.InvalidLanguage,
             else => unreachable,
         };
     }
@@ -161,11 +161,11 @@ pub const Query = opaque {
 
     /// A quantifier for captures.
     pub const Quantifier = enum(c_uint) {
-        Zero,
-        ZeroOrOne,
-        ZeroOrMore,
-        One,
-        OneOrMore,
+        zero,
+        zero_or_one,
+        zero_or_more,
+        one,
+        one_or_more,
     };
 
     /// A particular `Node` that has been captured within a query.
@@ -193,7 +193,7 @@ pub const Query = opaque {
     ///   Their `value_id` can be used with the `stringValueForId()`
     ///   method to obtain their string value.
     pub const PredicateStep = extern struct {
-        type: enum(c_uint) { Done, Capture, String },
+        type: enum(c_uint) { done, capture, string },
         value_id: u32,
     };
 };
