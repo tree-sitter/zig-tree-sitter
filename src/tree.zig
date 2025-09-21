@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const alloc = @import("alloc.zig");
 const Language = @import("language.zig").Language;
 const Node = @import("node.zig").Node;
 const Point = @import("point.zig").Point;
@@ -91,7 +92,7 @@ pub const Tree = opaque {
 
     /// Free the ranges allocated with `Tree.getIncludedRanges()` or `Tree.getChangedRanges()`.
     pub fn freeRanges(ranges: []const Range) void {
-        ts_current_free(@ptrCast(@constCast(ranges)));
+        alloc.free_fn(@ptrCast(@constCast(ranges)));
     }
 
     /// Print a graph of the tree to the given file.
@@ -104,7 +105,6 @@ pub const Tree = opaque {
     }
 };
 
-extern var ts_current_free: *const fn ([*]u8) callconv(.c) void;
 extern fn ts_node_is_null(self: Node) bool;
 extern fn ts_tree_copy(self: *const Tree) *Tree;
 extern fn ts_tree_delete(self: *Tree) void;

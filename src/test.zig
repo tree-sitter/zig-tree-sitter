@@ -177,6 +177,9 @@ test "TreeCursor" {
 }
 
 test "Node" {
+    ts.setAllocator(testing.allocator);
+    defer ts.setAllocator(null);
+
     const language = tree_sitter_c();
     defer language.destroy();
 
