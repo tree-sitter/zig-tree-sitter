@@ -16,11 +16,11 @@ jobs:
     name: Update dependencies
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
       - name: Create app token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{vars.BACKPORT_APP}}

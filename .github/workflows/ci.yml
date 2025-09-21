@@ -49,7 +49,7 @@ jobs:
             flags: -frosetta
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
       - name: Set up MSVC
