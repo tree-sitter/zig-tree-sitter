@@ -1,20 +1,16 @@
+const build = @import("build");
 const std = @import("std");
 const testing = std.testing;
 const ts = @import("root.zig");
 const c = @import("tree-sitter-c");
 const Language = ts.Language;
 
-extern fn tree_sitter_c() callconv(.c) *const ts.Language;
-
 test "Language" {
     const language = Language.fromRaw(c.language());
     defer language.destroy();
 
-    try testing.expectEqual(15, language.version());
-    try testing.expectEqual(
-        ts.LanguageMetadata{ .major_version = 0, .minor_version = 24, .patch_version = 1 },
-        language.metadata().?.*,
-    );
+    try testing.expectEqual(15, language.abiVersion());
+    try testing.expect(language.semanticVersion() != null);
     try testing.expect(language.nodeKindCount() > 1);
     try testing.expect(language.fieldCount() > 1);
     try testing.expect(language.parseStateCount() > 1);
@@ -26,6 +22,7 @@ test "Language" {
     try testing.expect(language.nodeKindIsVisible(1));
     try testing.expect(!language.nodeKindIsSupertype(1));
     try testing.expect(language.nextState(1, 161) > 1);
+    try testing.expect(!language.isWasm());
 
     const copy = language.dupe();
     try testing.expectEqual(language, copy);
@@ -56,7 +53,7 @@ test "LookaheadIterator" {
     try testing.expect(lookahead.resetState(state));
 
     try testing.expect(lookahead.next());
-    try testing.expect(lookahead.reset(@ptrCast(language), state));
+    try testing.expect(lookahead.reset(language, state));
 }
 
 test "Parser" {
@@ -77,14 +74,14 @@ test "Parser" {
 }
 
 test "Tree" {
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
     const parser = ts.Parser.create();
     defer parser.destroy();
     try parser.setLanguage(@ptrCast(language));
 
-    const tree = parser.parseStringEncoding("int main() {}", null, .UTF_8).?;
+    const tree = parser.parseString("int main() {}", null).?;
     defer tree.destroy();
     try testing.expectEqual(language, tree.getLanguage());
     try testing.expectEqual(13, tree.rootNode().endByte());
@@ -126,7 +123,7 @@ test "Tree" {
 }
 //
 test "TreeCursor" {
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
     const parser = ts.Parser.create();
@@ -180,7 +177,7 @@ test "Node" {
     ts.setAllocator(testing.allocator);
     defer ts.setAllocator(null);
 
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
     const parser = ts.Parser.create();
@@ -267,7 +264,7 @@ test "Node" {
 }
 
 test "Query" {
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
     var error_offset: u32 = 0;
@@ -308,7 +305,7 @@ test "Query" {
 }
 
 test "QueryCursor" {
-    const language = tree_sitter_c();
+    const language = Language.fromRaw(c.language());
     defer language.destroy();
 
     const source =
@@ -351,4 +348,47 @@ test "QueryCursor" {
     try testing.expectEqual(1, match.captures.len);
     try testing.expectEqual(1, match.captures[0].index);
     try testing.expectEqualStrings("(", match.captures[0].node.kind());
+}
+
+test "Wasm" {
+    if (comptime !build.enable_wasm) return error.SkipZigTest;
+
+    const engine = try ts.WasmEngine.init(null);
+    defer engine.deinit();
+
+    var error_message: []u8 = undefined;
+    const store = ts.WasmStore.create(testing.allocator, engine, &error_message) catch |err| {
+        std.log.err("{s}", .{error_message});
+        testing.allocator.free(error_message);
+        return err;
+    };
+    defer store.destroy();
+
+    const wasm = @embedFile("tree-sitter-c.wasm");
+    const language = store.loadLanguage(testing.allocator, "c", wasm, &error_message) catch |err| {
+        std.log.err("{s}", .{error_message});
+        testing.allocator.free(error_message);
+        return err;
+    };
+    defer language.destroy();
+
+    try testing.expect(language.isWasm());
+    try testing.expectEqual(1, store.languageCount());
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+
+    try testing.expectError(error.IncompatibleLanguage, parser.setLanguage(language));
+    parser.setWasmStore(store);
+    defer _ = parser.takeWasmStore();
+    try parser.setLanguage(language);
+
+    const tree = parser.parseString("int main() {}", null).?;
+    defer tree.destroy();
+
+    try testing.expectEqualStrings("translation_unit", tree.rootNode().kind());
+
+    try testing.expectError(error.ParseError, store.loadLanguage(testing.allocator, "c", "", &error_message));
+    try testing.expectEqualStrings("failed to parse dylink section of Wasm module", error_message);
+    testing.allocator.free(error_message);
 }
