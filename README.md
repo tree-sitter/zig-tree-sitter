@@ -65,12 +65,12 @@ pub fn main() !void {
     try parser.setLanguage(language);
 
     // Parse some source code and get the root node
-    const tree = try parser.parseBuffer("pub fn main() !void {}", null, null);
-    defer tree.destroy();
+    const tree = parser.parseString("pub fn main() !void {}", null);
+    defer tree.?.destroy();
 
-    const node = tree.rootNode();
-    std.debug.assert(std.mem.eql(u8, node.type(), "source_file"));
-    std.debug.assert(node.endPoint().cmp(.{ .row = 0, .column = 22 }) == 0);
+    const node = tree.?.rootNode();
+    std.debug.assert(std.mem.eql(u8, node.kind(), "source_file"));
+    std.debug.assert(node.endPoint().cmp(.{ .row = 0, .column = 22 }) == .eq);
 
     // Create a query and execute it
     var error_offset: u32 = 0;
@@ -84,7 +84,7 @@ pub fn main() !void {
     // Get the captured node of the first match
     const match = cursor.nextMatch().?;
     const capture = match.captures[0].node;
-    std.debug.assert(std.mem.eql(u8, capture.type(), "identifier"));
+    std.debug.assert(std.mem.eql(u8, capture.kind(), "identifier"));
 }
 ```
 
