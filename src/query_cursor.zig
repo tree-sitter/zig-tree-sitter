@@ -163,8 +163,6 @@ pub extern fn ts_query_cursor_exec_with_options(
 pub extern fn ts_query_cursor_did_exceed_match_limit(self: *const QueryCursor) bool;
 pub extern fn ts_query_cursor_match_limit(self: *const QueryCursor) u32;
 pub extern fn ts_query_cursor_set_match_limit(self: *QueryCursor, limit: u32) void;
-pub extern fn ts_query_cursor_set_timeout_micros(self: *QueryCursor, timeout_micros: u64) void;
-pub extern fn ts_query_cursor_timeout_micros(self: *const QueryCursor) u64;
 pub extern fn ts_query_cursor_set_byte_range(self: *QueryCursor, start_byte: u32, end_byte: u32) bool;
 pub extern fn ts_query_cursor_set_point_range(self: *QueryCursor, start_point: Point, end_point: Point) bool;
 pub extern fn ts_query_cursor_set_max_start_depth(self: *QueryCursor, max_start_depth: u32) void;
