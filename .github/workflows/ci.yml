@@ -69,6 +69,8 @@ jobs:
         uses: actions/checkout@v5
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.1
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
         if: contains(matrix.target, 'msvc')
@@ -77,6 +79,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y musl
       - name: Run unit tests
         shell: sh
-        run: zig build test $ZIG_FLAGS --verbose
+        run: zig build test $ZIG_FLAGS -Doptimize=ReleaseSafe --verbose
         env:
           ZIG_FLAGS: -Dtarget=${{matrix.target}} -Denable-wasm=${{matrix.wasm}}
