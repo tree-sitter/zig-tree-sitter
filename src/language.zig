@@ -10,6 +10,18 @@ const SymbolType = enum(c_uint) {
     Auxiliary,
 };
 
+/// The metadata associated with a language.
+///
+/// Currently, this metadata can be used to check the [Semantic Version](https://semver.org/)
+/// of the language. This version information should be used to signal if a given parser might
+/// be incompatible with existing queries when upgrading between major versions, or minor versions
+/// if it's in zerover.
+const LanguageMetadata = extern struct {
+    major_version: u8,
+    minor_version: u8,
+    patch_version: u8,
+};
+
 const LanguageFn = *const fn () callconv(.c) *const Language;
 
 /// An opaque object that defines how to parse a particular language.
@@ -36,14 +48,6 @@ pub const Language = opaque {
 
     /// Get the ABI version number that indicates which version of the
     /// Tree-sitter CLI that was used to generate this language.
-    ///
-    /// Deprecated: Use `Language.abiVersion()` instead.
-    pub fn version(self: *const Language) u32 {
-        return ts_language_abi_version(self);
-    }
-
-    /// Get the ABI version number that indicates which version of the
-    /// Tree-sitter CLI that was used to generate this language.
     pub fn abiVersion(self: *const Language) u32 {
         return ts_language_abi_version(self);
     }
@@ -56,6 +60,14 @@ pub const Language = opaque {
             .minor = @intCast(metadata.minor_version),
             .patch = @intCast(metadata.patch_version),
         };
+    }
+
+    /// Check if the language came from a Wasm module.
+    ///
+    /// If so, then in order to use this language with a `Parser`,
+    /// that parser must have a `WasmStore` assigned.
+    pub inline fn isWasm(self: *const Language) bool {
+        return ts_language_is_wasm(self);
     }
 
     /// Get the number of distinct node types in this language.
@@ -162,6 +174,7 @@ extern fn ts_language_delete(self: *const Language) void;
 extern fn ts_language_field_count(self: *const Language) u32;
 extern fn ts_language_field_id_for_name(self: *const Language, name: [*]const u8, name_length: u32) u16;
 extern fn ts_language_field_name_for_id(self: *const Language, id: u16) ?[*:0]const u8;
+extern fn ts_language_is_wasm(language: *const Language) bool;
 extern fn ts_language_metadata(self: *const Language) ?*const LanguageMetadata;
 extern fn ts_language_name(self: *const Language) ?[*:0]const u8;
 extern fn ts_language_next_state(self: *const Language, state: u16, symbol: u16) u16;
