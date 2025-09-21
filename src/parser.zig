@@ -169,16 +169,7 @@ pub const Parser = opaque {
     /// are four possible reasons for failure:
     /// 1. The parser does not have a language assigned. Check for this using the
     ///    `Parser.getLanguage()` method.
-    /// 2. Parsing was cancelled due to a timeout that was set by an earlier call to
-    ///    the `Parser.setTimeoutMicros()` function. You can resume parsing from
-    ///    where the parser left out by calling `Parser.parse()` again with the
-    ///    same arguments. Or you can start parsing from scratch by first calling
-    ///    `Parser.reset()`.
-    /// 3. Parsing was cancelled using a cancellation flag that was set by an
-    ///    earlier call to `Parser.setCancellationFlag()`. You can resume parsing
-    ///    from where the parser left out by calling `Parser.parse()` again with
-    ///    the same arguments.
-    /// 4. Parsing was cancelled due to the progress callback returning true. This callback
+    /// 2. Parsing was cancelled due to the progress callback returning true. This callback
     ///    is passed in `Parser.parseWithOptions()` inside the `Parser.Options` struct.
     pub fn parse(
         self: *Parser,
@@ -243,7 +234,7 @@ pub const Parser = opaque {
 
     /// Instruct the parser to start the next parse from the beginning.
     ///
-    /// If the parser previously failed because of a timeout or a cancellation,
+    /// If the parser previously failed because of a progress callback,
     /// then by default, it will resume where it left off on the next call to a
     /// parsing method. If you don't want to resume, and instead intend to use
     /// this parser to parse some other document, you must call this method first.
@@ -325,10 +316,6 @@ extern fn ts_parser_parse_string_encoding(
     encoding: Input.Encoding,
 ) ?*Tree;
 extern fn ts_parser_reset(self: *Parser) void;
-extern fn ts_parser_set_timeout_micros(self: *Parser, timeout_micros: u64) void;
-extern fn ts_parser_timeout_micros(self: *const Parser) u64;
-extern fn ts_parser_set_cancellation_flag(self: *Parser, flag: ?*const usize) void;
-extern fn ts_parser_cancellation_flag(self: *const Parser) ?*const usize;
 extern fn ts_parser_set_logger(self: *Parser, logger: Logger) void;
 extern fn ts_parser_logger(self: *const Parser) Logger;
 extern fn ts_parser_print_dot_graphs(self: *Parser, fd: c_int) void;
