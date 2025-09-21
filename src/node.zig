@@ -209,15 +209,17 @@ pub const Node = extern struct {
     /// `TreeCursor` APIs directly instead.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn children(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+    pub fn children(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
         cursor.reset(self);
         cursor.gotoFirstChild();
         var result = try std.ArrayList(Node).initCapacity(allocator, self.childCount());
-        errdefer result.deinit();
+        errdefer result.deinit(allocator);
+
         while (cursor.gotoNextSibling()) {
             try result.append(cursor.node());
         }
-        return result;
+
+        return result.toOwnedSlice();
     }
 
     /// Iterate over this node's named children.
@@ -225,17 +227,19 @@ pub const Node = extern struct {
     /// See also `Node.children()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
         cursor.reset(self);
         cursor.gotoFirstChild();
         var result = try std.ArrayList(Node).initCapacity(allocator, self.namedChildCount());
         errdefer result.deinit();
+
         while (cursor.gotoNextSibling()) {
             if (cursor.node().isNamed()) {
                 try result.append(cursor.node());
             }
         }
-        return result;
+
+        return result.toOwnedSlice();
     }
 
     /// Iterate over this node's children with a given field name.
@@ -243,7 +247,7 @@ pub const Node = extern struct {
     /// See also `Node.children()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
         const field_id = self.language().fieldIdForName(field_name);
         return self.childrenByFieldId(field_id, cursor, allocator);
     }
@@ -253,7 +257,7 @@ pub const Node = extern struct {
     /// See also `Node.childrenByFieldName()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldId(self: Node, field_id: u16, cursor: *TreeCursor, allocator: *std.mem.Allocator) !std.ArrayList(Node) {
+    pub fn childrenByFieldId(self: Node, field_id: u16, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
         if (field_id == 0) {
             return std.ArrayList(Node).init(allocator);
         }
@@ -264,13 +268,13 @@ pub const Node = extern struct {
         errdefer result.deinit();
         while (cursor.fieldId() != field_id) {
             if (!cursor.gotoNextSibling()) {
-                return result;
+                return result.toOwnedSlice();
             }
         }
         while (true) {
             try result.append(cursor.node());
             if (!cursor.gotoNextSibling()) {
-                return result;
+                return result.toOwnedSlice();
             }
         }
     }
