@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const alloc = @import("alloc.zig");
 const InputEdit = @import("tree.zig").InputEdit;
 const Language = @import("language.zig").Language;
 const Point = @import("point.zig").Point;
@@ -351,7 +352,7 @@ pub const Node = extern struct {
 
     /// Free an S-expression allocated with `toSexp()`.
     pub fn freeSexp(sexp: [:0]const u8) void {
-        ts_current_free(@ptrCast(@constCast(sexp)));
+        alloc.free_fn(@ptrCast(@constCast(sexp)));
     }
 
     /// Create a new `TreeCursor` starting from this node.
@@ -400,7 +401,6 @@ pub const Node = extern struct {
     }
 };
 
-extern var ts_current_free: *const fn ([*]u8) callconv(.c) void;
 extern fn ts_node_child(self: Node, child_index: u32) Node;
 extern fn ts_node_child_by_field_id(self: Node, field_id: u16) Node;
 extern fn ts_node_child_by_field_name(self: Node, name: [*]const u8, name_length: u32) Node;
