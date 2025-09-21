@@ -210,13 +210,17 @@ pub const Node = extern struct {
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
     pub fn children(self: Node, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
-        cursor.reset(self);
-        cursor.gotoFirstChild();
         var result = try std.ArrayList(Node).initCapacity(allocator, self.childCount());
         errdefer result.deinit(allocator);
 
+        cursor.reset(self);
+        if (!cursor.gotoFirstChild()) {
+            return try result.toOwnedSlice(allocator);
+        }
+
+        try result.append(allocator, cursor.currentNode());
         while (cursor.gotoNextSibling()) {
-            try result.append(cursor.node());
+            result.appendAssumeCapacity(cursor.currentNode());
         }
 
         return result.toOwnedSlice();
@@ -228,27 +232,32 @@ pub const Node = extern struct {
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
     pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
-        cursor.reset(self);
-        cursor.gotoFirstChild();
         var result = try std.ArrayList(Node).initCapacity(allocator, self.namedChildCount());
-        errdefer result.deinit();
+        errdefer result.deinit(allocator);
 
-        while (cursor.gotoNextSibling()) {
-            if (cursor.node().isNamed()) {
-                try result.append(cursor.node());
-            }
+        cursor.reset(self);
+        if (!cursor.gotoFirstChild()) {
+            return try result.toOwnedSlice(allocator);
         }
 
-        return result.toOwnedSlice();
+        while (true) {
+            var node = cursor.currentNode();
+            if (node.isNamed()) {
+                result.appendAssumeCapacity(node);
+            }
+            if (!cursor.gotoNextSibling()) break;
+        }
+
+        return try result.toOwnedSlice(allocator);
     }
 
     /// Iterate over this node's children with a given field name.
     ///
     /// See also `Node.children()`.
     ///
-    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
+    /// The caller owns the memory.
     pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
-        const field_id = self.language().fieldIdForName(field_name);
+        const field_id = self.getLanguage().fieldIdForName(field_name);
         return self.childrenByFieldId(field_id, cursor, allocator);
     }
 
@@ -256,27 +265,26 @@ pub const Node = extern struct {
     ///
     /// See also `Node.childrenByFieldName()`.
     ///
-    /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
+    /// The caller owns the memory.
     pub fn childrenByFieldId(self: Node, field_id: u16, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
-        if (field_id == 0) {
-            return std.ArrayList(Node).init(allocator);
-        }
+        var result = std.ArrayList(Node).empty;
+        errdefer result.deinit(allocator);
 
         cursor.reset(self);
-        cursor.gotoFirstChild();
-        var result = try std.ArrayList(Node).init(allocator);
-        errdefer result.deinit();
-        while (cursor.fieldId() != field_id) {
-            if (!cursor.gotoNextSibling()) {
-                return result.toOwnedSlice();
-            }
+        if (field_id == 0 or !cursor.gotoFirstChild()) {
+            return try result.toOwnedSlice(allocator);
         }
+
         while (true) {
-            try result.append(cursor.node());
+            if (cursor.currentFieldId() == field_id) {
+                try result.append(allocator, cursor.currentNode());
+            }
             if (!cursor.gotoNextSibling()) {
-                return result.toOwnedSlice();
+                break;
             }
         }
+
+        return result.toOwnedSlice();
     }
 
     /// Get this node's immediate parent.
