@@ -1,3 +1,4 @@
+const build = @import("build");
 const std = @import("std");
 
 const InputEdit = @import("tree.zig").InputEdit;
@@ -6,6 +7,7 @@ const Node = @import("node.zig").Node;
 const Point = @import("point.zig").Point;
 const Range = @import("point.zig").Range;
 const Tree = @import("tree.zig").Tree;
+const WasmStore = @import("wasm.zig").WasmStore;
 
 /// A struct that specifies how to read input text.
 pub const Input = extern struct {
@@ -88,10 +90,11 @@ pub const Parser = opaque {
     ///
     /// Returns an error if the language was not successfully assigned.
     /// The error means that the language was generated with an incompatible
-    /// version of the Tree-sitter CLI.
-    pub fn setLanguage(self: *Parser, language: ?*const Language) error{IncompatibleVersion}!void {
+    /// version of the Tree-sitter CLI, or if it was loaded from Wasm and the
+    /// parser lacks a Wasm store.
+    pub fn setLanguage(self: *Parser, language: ?*const Language) error{IncompatibleLanguage}!void {
         if (!ts_parser_set_language(self, language)) {
-            return error.IncompatibleVersion;
+            return error.IncompatibleLanguage;
         }
     }
 
@@ -248,6 +251,20 @@ pub const Parser = opaque {
         ts_parser_reset(self);
     }
 
+    /// Assign the given Wasm store to the parser.
+    ///
+    /// A parser must have a Wasm store in order to use Wasm languages.
+    pub fn setWasmStore(self: *Parser, store: *WasmStore) void {
+        if (comptime !build.enable_wasm) @compileError("Wasm is not supported");
+        ts_parser_set_wasm_store(self, store);
+    }
+
+    /// Remove the parser's current Wasm store, if any, and return it.
+    pub fn takeWasmStore(self: *Parser) ?*WasmStore {
+        if (comptime !build.enable_wasm) @compileError("Wasm is not supported");
+        return ts_parser_take_wasm_store(self);
+    }
+
     /// Set the destination to which the parser should write debugging graphs
     /// during parsing. The graphs are formatted in the DOT language. You may
     /// want to pipe these graphs directly to a `dot(1)` process in order to
@@ -310,3 +327,5 @@ extern fn ts_parser_cancellation_flag(self: *const Parser) ?*const usize;
 extern fn ts_parser_set_logger(self: *Parser, logger: Logger) void;
 extern fn ts_parser_logger(self: *const Parser) Logger;
 extern fn ts_parser_print_dot_graphs(self: *Parser, fd: c_int) void;
+extern fn ts_parser_set_wasm_store(parser: *Parser, store: *WasmStore) void;
+extern fn ts_parser_take_wasm_store(parser: *Parser) ?*WasmStore;
