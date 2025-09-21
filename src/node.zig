@@ -209,7 +209,7 @@ pub const Node = extern struct {
     /// `TreeCursor` APIs directly instead.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn children(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
+    pub fn children(self: Node, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
         cursor.reset(self);
         cursor.gotoFirstChild();
         var result = try std.ArrayList(Node).initCapacity(allocator, self.childCount());
@@ -227,7 +227,7 @@ pub const Node = extern struct {
     /// See also `Node.children()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
+    pub fn namedChildren(self: Node, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
         cursor.reset(self);
         cursor.gotoFirstChild();
         var result = try std.ArrayList(Node).initCapacity(allocator, self.namedChildCount());
@@ -247,7 +247,7 @@ pub const Node = extern struct {
     /// See also `Node.children()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
+    pub fn childrenByFieldName(self: Node, field_name: []const u8, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
         const field_id = self.language().fieldIdForName(field_name);
         return self.childrenByFieldId(field_id, cursor, allocator);
     }
@@ -257,7 +257,7 @@ pub const Node = extern struct {
     /// See also `Node.childrenByFieldName()`.
     ///
     /// The caller is responsible for freeing the resulting array using `std.ArrayList.deinit`.
-    pub fn childrenByFieldId(self: Node, field_id: u16, cursor: *TreeCursor, allocator: *std.mem.Allocator) ![]Node {
+    pub fn childrenByFieldId(self: Node, field_id: u16, cursor: *TreeCursor, allocator: std.mem.Allocator) ![]Node {
         if (field_id == 0) {
             return std.ArrayList(Node).init(allocator);
         }
