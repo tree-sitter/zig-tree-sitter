@@ -10,18 +10,6 @@ const SymbolType = enum(c_uint) {
     Auxiliary,
 };
 
-/// The metadata associated with a language.
-///
-/// Currently, this metadata can be used to check the [Semantic Version](https://semver.org/)
-/// of the language. This version information should be used to signal if a given parser might
-/// be incompatible with existing queries when upgrading between major versions, or minor versions
-/// if it's in zerover.
-pub const LanguageMetadata = extern struct {
-    major_version: u8,
-    minor_version: u8,
-    patch_version: u8,
-};
-
 const LanguageFn = *const fn () callconv(.c) *const Language;
 
 /// An opaque object that defines how to parse a particular language.
@@ -61,8 +49,13 @@ pub const Language = opaque {
     }
 
     /// Get the semantic version for this language.
-    pub fn metadata(self: *const Language) ?*const LanguageMetadata {
-        return ts_language_metadata(self);
+    pub fn semanticVersion(self: *const Language) ?std.SemanticVersion {
+        const metadata = ts_language_metadata(self) orelse return null;
+        return .{
+            .major = @intCast(metadata.major_version),
+            .minor = @intCast(metadata.minor_version),
+            .patch = @intCast(metadata.patch_version),
+        };
     }
 
     /// Get the number of distinct node types in this language.
