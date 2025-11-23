@@ -16,7 +16,7 @@ jobs:
     name: Update dependencies
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
         with:
