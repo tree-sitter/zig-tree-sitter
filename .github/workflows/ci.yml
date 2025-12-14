@@ -36,7 +36,6 @@ jobs:
           - x86_64-windows-msvc
           # - aarch64-windows-gnu
           - aarch64-macos-none
-          - x86_64-macos-none
         wasm:
           - "true"
           - "false"
@@ -56,8 +55,6 @@ jobs:
           #   target: aarch64-windows-gnu
           - os: macos-15
             target: aarch64-macos-none
-          - os: macos-13
-            target: x86_64-macos-none
         exclude:
           # doesn't build
           - target: x86_64-windows-msvc
