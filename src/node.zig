@@ -386,10 +386,10 @@ pub const Node = extern struct {
     /// Format the node as a string.
     pub fn format(self: Node, writer: *std.Io.Writer) !void {
         try writer.print(
-            "Node(id=0x{x}, type={s}, start={d}, end={d})",
+            "Node(id=0x{x}, kind={s}, start={d}, end={d})",
             .{
                 @intFromPtr(self.id),
-                self.type(),
+                self.kind(),
                 self.startByte(),
                 self.endByte(),
             },
