@@ -12,7 +12,7 @@ const QueryMatch = extern struct {
         return .{
             .id = self.id,
             .pattern_index = self.pattern_index,
-            .captures = self.captures[0..self.capture_count],
+            .captures = if (self.capture_count == 0) &[_]Query.Capture{} else self.captures[0..self.capture_count],
         };
     }
 };
