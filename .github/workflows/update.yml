@@ -16,7 +16,7 @@ jobs:
     name: Update dependencies
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
         with:
@@ -30,7 +30,7 @@ jobs:
         env:
           GH_TOKEN: ${{github.token}}
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           add-paths: build.zig.zon
           labels: dependencies
