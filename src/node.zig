@@ -223,7 +223,7 @@ pub const Node = extern struct {
             result.appendAssumeCapacity(cursor.node());
         }
 
-        return result.toOwnedSlice();
+        return result.toOwnedSlice(allocator);
     }
 
     /// Iterate over this node's named children.
@@ -284,7 +284,7 @@ pub const Node = extern struct {
             }
         }
 
-        return result.toOwnedSlice();
+        return result.toOwnedSlice(allocator);
     }
 
     /// Get this node's immediate parent.
