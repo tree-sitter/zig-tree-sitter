@@ -20,7 +20,7 @@ jobs:
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.1
+          version: 0.16.0
       - name: Update dependencies
         run: |-
           for repo in tree-sitter/tree-sitter tree-sitter/tree-sitter-c; do
