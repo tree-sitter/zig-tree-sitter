@@ -1,7 +1,7 @@
 .{
     .name = .tree_sitter,
     .fingerprint = 0x841224b47f8817f2,
-    .version = "0.25.0",
+    .version = "0.26.0",
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .@"tree-sitter-c" = .{
