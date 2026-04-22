@@ -42,7 +42,7 @@ jobs:
         include:
           - os: ubuntu-24.04
             target: x86_64-linux-gnu
-          - os: ubuntu-24.04
+          - os: ubuntu-25.04
             target: x86_64-linux-musl
           - os: ubuntu-24.04-arm
             target: aarch64-linux-gnu
