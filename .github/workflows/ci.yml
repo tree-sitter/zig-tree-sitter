@@ -30,7 +30,8 @@ jobs:
       matrix:
         target:
           - x86_64-linux-gnu
-          - x86_64-linux-musl
+          # Zig 0.16 needs musl-1.2.5 (in ubuntu-26.04)
+          # - x86_64-linux-musl
           - aarch64-linux-gnu
           - x86_64-windows-gnu
           - x86_64-windows-msvc
@@ -42,8 +43,9 @@ jobs:
         include:
           - os: ubuntu-24.04
             target: x86_64-linux-gnu
-          - os: ubuntu-24.04
-            target: x86_64-linux-musl
+          # Zig 0.16 needs musl-1.2.5 (in ubuntu-26.04)
+          # - os: ubuntu-24.04
+          #   target: x86_64-linux-musl
           - os: ubuntu-24.04-arm
             target: aarch64-linux-gnu
           - os: windows-2022
