@@ -218,12 +218,12 @@ pub const Node = extern struct {
             return try result.toOwnedSlice(allocator);
         }
 
-        try result.append(allocator, cursor.currentNode());
+        try result.append(allocator, cursor.node());
         while (cursor.gotoNextSibling()) {
-            result.appendAssumeCapacity(cursor.currentNode());
+            result.appendAssumeCapacity(cursor.node());
         }
 
-        return result.toOwnedSlice();
+        return result.toOwnedSlice(allocator);
     }
 
     /// Iterate over this node's named children.
@@ -241,7 +241,7 @@ pub const Node = extern struct {
         }
 
         while (true) {
-            var node = cursor.currentNode();
+            var node = cursor.node();
             if (node.isNamed()) {
                 result.appendAssumeCapacity(node);
             }
@@ -276,15 +276,15 @@ pub const Node = extern struct {
         }
 
         while (true) {
-            if (cursor.currentFieldId() == field_id) {
-                try result.append(allocator, cursor.currentNode());
+            if (cursor.fieldId() == field_id) {
+                try result.append(allocator, cursor.node());
             }
             if (!cursor.gotoNextSibling()) {
                 break;
             }
         }
 
-        return result.toOwnedSlice();
+        return result.toOwnedSlice(allocator);
     }
 
     /// Get this node's immediate parent.
