@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) !void {
         .root_module = module,
         .linkage = .static,
     });
+    b.installArtifact(lib);
 
     const install_docs = b.addInstallDirectory(.{
         .source_dir = lib.getEmittedDocs(),
