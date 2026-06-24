@@ -30,11 +30,11 @@ jobs:
       matrix:
         target:
           - x86_64-linux-gnu
-          # Zig 0.16 needs musl-1.2.5 (in ubuntu-26.04)
-          # - x86_64-linux-musl
+          - x86_64-linux-musl
           - aarch64-linux-gnu
           - x86_64-windows-gnu
           - x86_64-windows-msvc
+          # Zig 0.16 segfaults in `zig build` on windows-11-arm
           # - aarch64-windows-gnu
           - aarch64-macos-none
         wasm:
@@ -43,16 +43,14 @@ jobs:
         include:
           - os: ubuntu-24.04
             target: x86_64-linux-gnu
-          # Zig 0.16 needs musl-1.2.5 (in ubuntu-26.04)
-          # - os: ubuntu-24.04
-          #   target: x86_64-linux-musl
+          - os: ubuntu-26.04 # 26.04 required for musl-1.2.5
+            target: x86_64-linux-musl
           - os: ubuntu-24.04-arm
             target: aarch64-linux-gnu
           - os: windows-2022
             target: x86_64-windows-gnu
           - os: windows-2022
             target: x86_64-windows-msvc
-          # FIXME: doesn't build
           # - os: windows-11-arm
           #   target: aarch64-windows-gnu
           - os: macos-15
