@@ -167,10 +167,10 @@ pub const Language = opaque {
     }
 
     /// Format the language as a string.
-    pub fn format(self: Language, writer: *std.Io.Writer) !void {
+    pub fn format(self: *const Language, writer: *std.Io.Writer) !void {
         return try writer.print(
-            "Language(id=0x{*}, version={d}, name={?s})",
-            .{ self, self.abi_version(), self.name() },
+            "Language(id=0x{x}, version={d}, name={?s})",
+            .{ @intFromPtr(self), self.abiVersion(), self.name() },
         );
     }
 };

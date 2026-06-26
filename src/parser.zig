@@ -1,5 +1,6 @@
 const build = @import("build");
 const std = @import("std");
+const builtin = @import("builtin");
 
 const InputEdit = @import("tree.zig").InputEdit;
 const Language = @import("language.zig").Language;
@@ -266,14 +267,14 @@ pub const Parser = opaque {
     /// Example:
     ///
     /// ```zig
-    /// parser.printDotGraphs(std.fs.File.stdout());
+    /// parser.printDotGraphs(std.Io.File.stdout());
     /// ```
-    pub fn printDotGraphs(self: *Parser, file: ?std.fs.File) void {
-        ts_parser_print_dot_graphs(self, if (file) |f| f.handle else -1);
+    pub fn printDotGraphs(self: *Parser, file: ?std.Io.File) void {
+        ts_parser_print_dot_graphs(self, if (file) |f| _ts_dup(f.handle) else -1);
     }
 
     /// Format the parser as a string.
-    pub fn format(self: Parser, writer: *std.Io.Writer) !void {
+    pub fn format(self: *const Parser, writer: *std.Io.Writer) !void {
         try writer.print("Parser(language={?f})", .{self.getLanguage()});
     }
 
@@ -319,5 +320,7 @@ extern fn ts_parser_reset(self: *Parser) void;
 extern fn ts_parser_set_logger(self: *Parser, logger: Logger) void;
 extern fn ts_parser_logger(self: *const Parser) Logger;
 extern fn ts_parser_print_dot_graphs(self: *Parser, fd: c_int) void;
+const DotGraphHandle = if (builtin.os.tag == .windows) *anyopaque else c_int;
+extern fn _ts_dup(handle: DotGraphHandle) c_int;
 extern fn ts_parser_set_wasm_store(parser: *Parser, store: *WasmStore) void;
 extern fn ts_parser_take_wasm_store(parser: *Parser) ?*WasmStore;

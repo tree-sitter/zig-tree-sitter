@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 const alloc = @import("alloc.zig");
 const Language = @import("language.zig").Language;
@@ -101,8 +102,12 @@ pub const Tree = opaque {
     /// The graph is formatted in the DOT language. You may want to pipe this
     /// graph directly to a `dot(1)` process in order to generate SVG
     /// output.
-    pub fn printDotGraph(self: *const Tree, file: std.fs.File) void {
-        ts_tree_print_dot_graph(self, file.handle);
+    pub fn printDotGraph(self: *const Tree, file: std.Io.File) void {
+        if (builtin.os.tag == .windows) {
+            ts_tree_print_dot_graph(self, _open_osfhandle(@bitCast(@intFromPtr(file.handle)), 0));
+        } else {
+            ts_tree_print_dot_graph(self, file.handle);
+        }
     }
 };
 
@@ -116,3 +121,5 @@ extern fn ts_tree_included_ranges(self: *const Tree, length: *u32) [*c]Range;
 extern fn ts_tree_edit(self: *Tree, edit: *const InputEdit) void;
 extern fn ts_tree_get_changed_ranges(old_tree: *const Tree, new_tree: *const Tree, length: *u32) [*c]Range;
 extern fn ts_tree_print_dot_graph(self: *const Tree, file_descriptor: c_int) void;
+// Win32 CRT: turns a HANDLE into a CRT file descriptor (Windows only).
+extern fn _open_osfhandle(osfhandle: isize, flags: c_int) c_int;
