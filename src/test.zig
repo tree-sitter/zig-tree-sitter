@@ -392,3 +392,21 @@ test "Wasm" {
     try testing.expectEqualStrings("failed to parse dylink section of Wasm module", error_message);
     testing.allocator.free(error_message);
 }
+
+test "refAllDecls" {
+    inline for (.{
+        ts.Language,    ts.LookaheadIterator, ts.Node,
+        ts.Tree,        ts.TreeCursor,        ts.Query,
+        ts.QueryCursor,
+    }) |T| testing.refAllDecls(T);
+
+    inline for (comptime std.meta.declarations(ts.Parser)) |decl| {
+        if (comptime std.mem.eql(u8, decl.name, "setWasmStore") or
+            std.mem.eql(u8, decl.name, "takeWasmStore")) continue;
+        _ = &@field(ts.Parser, decl.name);
+    }
+
+    if (comptime build.enable_wasm) {
+        inline for (.{ ts.WasmEngine, ts.WasmStore }) |T| testing.refAllDecls(T);
+    }
+}
