@@ -393,6 +393,276 @@ test "Wasm" {
     testing.allocator.free(error_message);
 }
 
+test "Node.children" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+
+    const tree = parser.parseString("int main() { return 0; }", null).?;
+    defer tree.destroy();
+
+    const root = tree.rootNode();
+    var cursor = root.walk();
+    defer cursor.destroy();
+
+    const func = root.child(0).?; // function_definition
+
+    // children(): all direct children, returned as an owned slice
+    const children = try func.children(&cursor, testing.allocator);
+    defer testing.allocator.free(children);
+    try testing.expectEqual(3, children.len);
+    try testing.expectEqualStrings("primitive_type", children[0].kind());
+    try testing.expectEqualStrings("function_declarator", children[1].kind());
+    try testing.expectEqualStrings("compound_statement", children[2].kind());
+
+    // namedChildren(): anonymous tokens (the braces) are filtered out
+    const body = func.childByFieldName("body").?; // compound_statement
+    const named = try body.namedChildren(&cursor, testing.allocator);
+    defer testing.allocator.free(named);
+    try testing.expectEqual(1, named.len);
+    try testing.expectEqualStrings("return_statement", named[0].kind());
+
+    // childrenByFieldName() / childrenByFieldId()
+    const by_name = try func.childrenByFieldName("type", &cursor, testing.allocator);
+    defer testing.allocator.free(by_name);
+    try testing.expectEqual(1, by_name.len);
+    try testing.expectEqualStrings("primitive_type", by_name[0].kind());
+
+    const by_id = try func.childrenByFieldId(
+        language.fieldIdForName("body"),
+        &cursor,
+        testing.allocator,
+    );
+    defer testing.allocator.free(by_id);
+    try testing.expectEqual(1, by_id.len);
+    try testing.expectEqualStrings("compound_statement", by_id[0].kind());
+
+    // empty cases still return a valid, freeable slice
+    const leaf = try children[0].children(&cursor, testing.allocator); // primitive_type is a leaf
+    defer testing.allocator.free(leaf);
+    try testing.expectEqual(0, leaf.len);
+
+    const no_field = try func.childrenByFieldId(0, &cursor, testing.allocator);
+    defer testing.allocator.free(no_field);
+    try testing.expectEqual(0, no_field.len);
+}
+
+test "Language.supertypes" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+
+    for (language.supertypes()) |supertype| {
+        try testing.expect(language.nodeKindForId(supertype) != null);
+        const subtypes = language.subtypesForSupertype(supertype);
+        try testing.expect(subtypes.len > 0);
+        for (subtypes) |sub| try testing.expect(language.nodeKindForId(sub) != null);
+    }
+
+    try testing.expectEqual(0, language.subtypesForSupertype(0).len);
+}
+
+test "QueryCursor limits and ranges" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+
+    var error_offset: u32 = 0;
+    const query = try ts.Query.create(
+        @ptrCast(language),
+        "(identifier) @id",
+        &error_offset,
+    );
+    defer query.destroy();
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+
+    const tree = parser.parseString("int main() { return x; }", null).?;
+    defer tree.destroy();
+
+    const cursor = ts.QueryCursor.create();
+    defer cursor.destroy();
+
+    cursor.setMatchLimit(16);
+    try testing.expectEqual(16, cursor.getMatchLimit());
+
+    try cursor.setByteRange(0, 1000);
+    try testing.expectError(error.InvalidRange, cursor.setByteRange(10, 5));
+
+    try cursor.setPointRange(
+        .{ .row = 0, .column = 0 },
+        .{ .row = 100, .column = 0 },
+    );
+
+    cursor.setMaxStartDepth(0xFFFFFFFF);
+
+    cursor.exec(query, tree.rootNode());
+    var count: usize = 0;
+    while (cursor.nextMatch()) |_| count += 1;
+    try testing.expect(count >= 1);
+}
+
+test "Parser.parse with Input callback" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+
+    // A read callback that serves the whole source in one chunk.
+    const Reader = struct {
+        fn read(payload: ?*anyopaque, byte_index: u32, _: ts.Point, bytes_read: *u32) callconv(.c) [*c]const u8 {
+            const src: *const []const u8 = @ptrCast(@alignCast(payload.?));
+            if (byte_index >= src.len) {
+                bytes_read.* = 0;
+                return "";
+            }
+            bytes_read.* = @intCast(src.len - byte_index);
+            return src.ptr + byte_index;
+        }
+    };
+
+    var source: []const u8 = "int main() {}";
+    const tree = parser.parse(.{
+        .payload = @ptrCast(&source),
+        .read = &Reader.read,
+        .encoding = .utf8,
+    }, null).?;
+    defer tree.destroy();
+
+    try testing.expectEqualStrings("translation_unit", tree.rootNode().kind());
+    try testing.expectEqual(13, tree.rootNode().endByte());
+}
+
+test "Parser.setLogger" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+
+    var calls: usize = 0;
+    const L = struct {
+        fn log(payload: ?*anyopaque, _: ts.Logger.LogType, _: [*:0]const u8) callconv(.c) void {
+            const counter: *usize = @ptrCast(@alignCast(payload.?));
+            counter.* += 1;
+        }
+    };
+    parser.setLogger(.{ .payload = @ptrCast(&calls), .log = &L.log });
+
+    const tree = parser.parseString("int main() {}", null).?;
+    defer tree.destroy();
+
+    try testing.expect(calls > 0);
+
+    const logger = parser.getLogger();
+    try testing.expect(logger.log != null);
+    try testing.expectEqual(@as(?*anyopaque, @ptrCast(&calls)), logger.payload);
+}
+
+test "Parser.parseWithOptions progress callback" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+
+    // A large input so the progress callback is invoked mid-parse.
+    const source: []const u8 = "int a;\n" ** 5000;
+    const Ctx = struct {
+        src: []const u8,
+        fn read(payload: ?*anyopaque, byte_index: u32, _: ts.Point, bytes_read: *u32) callconv(.c) [*c]const u8 {
+            const ctx: *@This() = @ptrCast(@alignCast(payload.?));
+            if (byte_index >= ctx.src.len) {
+                bytes_read.* = 0;
+                return "";
+            }
+            bytes_read.* = @intCast(ctx.src.len - byte_index);
+            return ctx.src.ptr + byte_index;
+        }
+        fn cancel(_: ts.Parser.State) callconv(.c) bool {
+            return true;
+        }
+        fn keep(_: ts.Parser.State) callconv(.c) bool {
+            return false;
+        }
+    };
+    var ctx = Ctx{ .src = source };
+    const input: ts.Input = .{ .payload = @ptrCast(&ctx), .read = &Ctx.read, .encoding = .utf8 };
+
+    // returning true from the progress callback cancels the parse
+    try testing.expect(parser.parseWithOptions(input, null, .{ .progress_callback = &Ctx.cancel }) == null);
+
+    // returning false lets it finish
+    parser.reset();
+    const tree = parser.parseWithOptions(input, null, .{ .progress_callback = &Ctx.keep }).?;
+    defer tree.destroy();
+    try testing.expectEqualStrings("translation_unit", tree.rootNode().kind());
+}
+
+test "format" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+
+    const lang_str = try std.fmt.allocPrint(testing.allocator, "{f}", .{language});
+    defer testing.allocator.free(lang_str);
+    try testing.expectStringStartsWith(lang_str, "Language(id=0x");
+    try testing.expect(std.mem.indexOf(u8, lang_str, "version=15") != null);
+    try testing.expect(std.mem.indexOf(u8, lang_str, "name=") != null);
+
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+
+    const parser_str = try std.fmt.allocPrint(testing.allocator, "{f}", .{parser});
+    defer testing.allocator.free(parser_str);
+    try testing.expectStringStartsWith(parser_str, "Parser(language=Language(id=0x");
+}
+
+test "Tree.printDotGraph" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+    const tree = parser.parseString("int main() {}", null).?;
+    defer tree.destroy();
+
+    var tmp = testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const file = try tmp.dir.createFile(testing.io, "tree.dot", .{ .read = true });
+    defer file.close(testing.io);
+
+    tree.printDotGraph(file);
+    try testing.expect((try file.stat(testing.io)).size > 0);
+}
+
+test "Parser.printDotGraphs" {
+    const language = Language.fromRaw(c.language());
+    defer language.destroy();
+    const parser = ts.Parser.create();
+    defer parser.destroy();
+    try parser.setLanguage(@ptrCast(language));
+
+    var tmp = testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const file = try tmp.dir.createFile(testing.io, "graphs.dot", .{ .read = true });
+    defer file.close(testing.io);
+
+    parser.printDotGraphs(file);
+    const tree = parser.parseString("int main() {}", null).?;
+    defer tree.destroy();
+    parser.printDotGraphs(null);
+
+    try testing.expect((try file.stat(testing.io)).size > 0);
+}
+
 test "refAllDecls" {
     inline for (.{
         ts.Language,    ts.LookaheadIterator, ts.Node,

@@ -2,6 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 pub fn main(init: std.process.Init) !void {
+    std.testing.io_instance = .init_single_threaded;
+
     var status: u8 = 0;
     const clock: std.Io.Clock = .awake;
     for (builtin.test_functions) |t| {
